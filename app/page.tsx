@@ -36,7 +36,7 @@ const STEM_ELEMENTS = ["Wood","Wood","Fire","Fire","Earth","Earth","Metal","Meta
 
 function getBaziPillar(s: number, b: number) { return HEAVENLY_STEMS[s] + EARTHLY_BRANCHES[b]; }
 
-function calculateBazi(dateStr, timeStr) {
+function calculateBazi(dateStr: string, timeStr: string) {
   const [year, month] = dateStr.split("-").map(Number);
   const [hour] = timeStr.split(":").map(Number);
   const yearStem = (year - 4) % 10, yearBranch = (year - 4) % 12;
