@@ -1,65 +1,249 @@
-import Image from "next/image";
+import { useState } from "react";
 
-export default function Home() {
+const translations = {
+  en: {
+    title: "Your Chinese Name", subtitle: "Discover your Chinese name through the ancient wisdom of BaZi",
+    tagline: "Bridging cultures through the art of Chinese naming",
+    firstName: "First Name", lastName: "Last Name", birthPlace: "Birth City & Country",
+    birthDate: "Birth Date", birthTime: "Birth Time (local time)",
+    birthTimeTip: "We'll automatically convert to Beijing Time for accurate BaZi calculation",
+    generate: "Generate My Chinese Name", generating: "Consulting the stars...",
+    switchLang: "中文", resultTitle: "Your Chinese Name",
+    phoneticTitle: "Phonetic Translation", phoneticDesc: "Direct sound-based translation of your name",
+    baziTitle: "Your BaZi Chart", year: "Year", month: "Month", day: "Day", hour: "Hour",
+    meaningTitle: "Name Analysis", shareBtn: "Share My Name", newName: "Generate Another",
+    placeholderFirst: "e.g. James", placeholderLast: "e.g. Smith", placeholderCity: "e.g. London, UK",
+  },
+  zh: {
+    title: "你的中文名", subtitle: "通过古老的八字智慧，发现属于你的中文名",
+    tagline: "以中文命名艺术，连接东西方文化",
+    firstName: "名字", lastName: "姓氏", birthPlace: "出生城市与国家",
+    birthDate: "出生日期", birthTime: "出生时间（当地时间）",
+    birthTimeTip: "我们将自动换算为北京时间，以准确计算八字",
+    generate: "生成我的中文名", generating: "正在问卜星象...",
+    switchLang: "English", resultTitle: "你的中文名",
+    phoneticTitle: "音译名", phoneticDesc: "根据你的名字音节直接音译",
+    baziTitle: "你的八字命盘", year: "年柱", month: "月柱", day: "日柱", hour: "时柱",
+    meaningTitle: "名字解析", shareBtn: "分享我的名字", newName: "重新生成",
+    placeholderFirst: "例如 James", placeholderLast: "例如 Smith", placeholderCity: "例如 London, UK",
+  },
+};
+
+const HEAVENLY_STEMS = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+const EARTHLY_BRANCHES = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+const STEM_ELEMENTS = ["Wood","Wood","Fire","Fire","Earth","Earth","Metal","Metal","Water","Water"];
+
+function getBaziPillar(s, b) { return HEAVENLY_STEMS[s] + EARTHLY_BRANCHES[b]; }
+
+function calculateBazi(dateStr, timeStr) {
+  const [year, month] = dateStr.split("-").map(Number);
+  const [hour] = timeStr.split(":").map(Number);
+  const yearStem = (year - 4) % 10, yearBranch = (year - 4) % 12;
+  const solarMonth = month - 1;
+  const monthStem = (yearStem * 2 + solarMonth) % 10, monthBranch = (solarMonth + 2) % 12;
+  const dayCycle = Math.floor((new Date(dateStr) - new Date("1900-01-01")) / 86400000);
+  const dayStem = (dayCycle + 10) % 10, dayBranch = (dayCycle + 12) % 12;
+  const hourBranch = Math.floor((hour + 1) / 2) % 12, hourStem = (dayStem * 2 + hourBranch) % 10;
+  return {
+    year: { pillar: getBaziPillar(yearStem, yearBranch), element: STEM_ELEMENTS[yearStem] },
+    month: { pillar: getBaziPillar(monthStem, monthBranch), element: STEM_ELEMENTS[monthStem] },
+    day: { pillar: getBaziPillar(dayStem, dayBranch), element: STEM_ELEMENTS[dayStem] },
+    hour: { pillar: getBaziPillar(hourStem, hourBranch), element: STEM_ELEMENTS[hourStem] },
+  };
+}
+
+const elColors = {
+  Wood: { bg:"bg-green-50", border:"border-green-200", text:"text-green-700", badge:"bg-green-400" },
+  Fire: { bg:"bg-red-50", border:"border-red-200", text:"text-red-700", badge:"bg-red-400" },
+  Earth: { bg:"bg-yellow-50", border:"border-yellow-200", text:"text-yellow-700", badge:"bg-yellow-400" },
+  Metal: { bg:"bg-gray-50", border:"border-gray-300", text:"text-gray-600", badge:"bg-gray-400" },
+  Water: { bg:"bg-blue-50", border:"border-blue-200", text:"text-blue-700", badge:"bg-blue-400" },
+};
+
+function BaziCard({ label, data }) {
+  const c = elColors[data.element] || elColors.Wood;
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className={`rounded-2xl border-2 ${c.border} ${c.bg} p-3 flex flex-col items-center gap-1`}>
+      <span className={`text-xs font-semibold uppercase tracking-wider ${c.text} opacity-70`}>{label}</span>
+      <span className="text-4xl font-bold text-gray-800" style={{fontFamily:"serif"}}>{data.pillar}</span>
+      <span className={`text-xs px-2 py-0.5 rounded-full ${c.badge} text-white font-medium`}>{data.element}</span>
+    </div>
+  );
+}
+
+function Dots() {
+  return <span className="inline-flex gap-1">{[0,1,2].map(i=><span key={i} className="w-2 h-2 bg-amber-300 rounded-full animate-bounce" style={{animationDelay:`${i*0.15}s`}}/>)}</span>;
+}
+
+export default function App() {
+  const [lang, setLang] = useState("en");
+  const t = translations[lang];
+  const [form, setForm] = useState({firstName:"",lastName:"",birthPlace:"",birthDate:"",birthTime:""});
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const handleChange = e => setForm(f=>({...f,[e.target.name]:e.target.value}));
+
+  const handleSubmit = async () => {
+    if (!form.firstName||!form.birthDate||!form.birthTime||!form.birthPlace) {
+      setError(lang==="en"?"Please fill in all required fields.":"请填写所有必填项。"); return;
+    }
+    setError(""); setLoading(true); setResult(null);
+    const bazi = calculateBazi(form.birthDate, form.birthTime);
+    const prompt = `You are a master Chinese name consultant with deep knowledge of BaZi (Eight Characters), Chinese phonetics, and classical poetry.
+
+A foreign person wants a Chinese name:
+- Full name: ${form.firstName} ${form.lastName}
+- Birth place: ${form.birthPlace}
+- Birth date: ${form.birthDate}, Birth time: ${form.birthTime}
+- BaZi: Year ${bazi.year.pillar}(${bazi.year.element}), Month ${bazi.month.pillar}(${bazi.month.element}), Day ${bazi.day.pillar}(${bazi.day.element}), Hour ${bazi.hour.pillar}(${bazi.hour.element})
+
+Create a Chinese name that sounds like their original name AND strengthens weak BaZi elements. Also provide a pure phonetic translation.
+
+Respond ONLY with valid JSON, no markdown:
+{"chineseName":"李明阳","pinyin":"Lǐ Míng Yáng","characters":[{"char":"李","pinyin":"Lǐ","meaning":"plum tree, strength","strokes":7,"element":"Wood"},{"char":"明","pinyin":"Míng","meaning":"bright, intelligent","strokes":8,"element":"Fire"},{"char":"阳","pinyin":"Yáng","meaning":"sun, positive energy","strokes":6,"element":"Fire"}],"phoneticOnly":"詹姆斯","phoneticPinyin":"Zhān Mǔ Sī","nameMeaning":"2-3 sentences explaining why this name suits them.","baziAnalysis":"Brief BaZi analysis and how the name compensates.","luckyElement":"Fire"}`;
+
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})
+      });
+      const data = await res.json();
+      const text = data.content?.map(b=>b.text||"").join("")||"";
+      const parsed = JSON.parse(text.replace(/```json|```/g,"").trim());
+      setResult({...parsed, bazi, form});
+    } catch(e) {
+      setError(lang==="en"?"Something went wrong. Please try again.":"出现错误，请重试。");
+    }
+    setLoading(false);
+  };
+
+  const handleShare = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(lang==="en"?`My Chinese name is ${result.chineseName} (${result.pinyin})! Get yours at ChineseName.ai`:`我的中文名是${result.chineseName}（${result.pinyin}）！`);
+    setCopied(true); setTimeout(()=>setCopied(false),2000);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-red-50">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-amber-100 px-6 py-3 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🏮</span>
+          <span className="font-bold text-gray-800 text-lg">ChineseName<span className="text-red-500">.ai</span></span>
+        </div>
+        <button onClick={()=>setLang(l=>l==="en"?"zh":"en")} className="text-sm px-4 py-1.5 rounded-full border border-amber-300 text-amber-700 hover:bg-amber-50 transition font-medium">{t.switchLang}</button>
+      </header>
+
+      <main className="max-w-2xl mx-auto px-4 py-12">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 bg-red-50 border border-red-200 rounded-full px-4 py-1 text-red-600 text-sm font-medium mb-4">
+            ✨ {t.tagline}
+          </div>
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-3">
+            {lang==="en"?<>Find Your <span className="text-red-500">Chinese Name</span></>:<>发现你的<span className="text-red-500">中文名</span></>}
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+          <p className="text-gray-500">{t.subtitle}</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+        {!result ? (
+          <div className="bg-white rounded-3xl shadow-lg shadow-amber-100 border border-amber-100 p-8">
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1.5">{t.firstName} *</label>
+                <input name="firstName" value={form.firstName} onChange={handleChange} placeholder={t.placeholderFirst} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300 transition"/>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1.5">{t.lastName}</label>
+                <input name="lastName" value={form.lastName} onChange={handleChange} placeholder={t.placeholderLast} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300 transition"/>
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">{t.birthPlace} *</label>
+              <input name="birthPlace" value={form.birthPlace} onChange={handleChange} placeholder={t.placeholderCity} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300 transition"/>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mb-2">
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1.5">{t.birthDate} *</label>
+                <input type="date" name="birthDate" value={form.birthDate} onChange={handleChange} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-300 transition"/>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1.5">{t.birthTime} *</label>
+                <input type="time" name="birthTime" value={form.birthTime} onChange={handleChange} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-300 transition"/>
+              </div>
+            </div>
+            <p className="text-xs text-amber-600 mb-6">⏰ {t.birthTimeTip}</p>
+            {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
+            <button onClick={handleSubmit} disabled={loading} className="w-full bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-600 hover:to-amber-600 disabled:opacity-60 text-white font-bold py-4 rounded-2xl transition shadow-md shadow-amber-200 flex items-center justify-center gap-2">
+              {loading?<><Dots/><span>{t.generating}</span></>:<><span>🏮</span>{t.generate}</>}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="bg-gradient-to-br from-red-600 to-amber-500 rounded-3xl p-8 text-white text-center shadow-xl shadow-red-200">
+              <p className="text-red-100 text-sm font-medium mb-2 uppercase tracking-widest">{t.resultTitle}</p>
+              <div className="text-7xl font-black mb-3 tracking-wider" style={{fontFamily:"serif",textShadow:"0 2px 20px rgba(0,0,0,0.2)"}}>{result.chineseName}</div>
+              <p className="text-2xl text-amber-100 font-light tracking-widest">{result.pinyin}</p>
+              {result.luckyElement&&<div className="mt-4 inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-sm font-medium">⭐ Lucky Element: <strong>{result.luckyElement}</strong></div>}
+            </div>
+
+            <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-6">
+              <h3 className="font-bold text-gray-700 mb-4 text-sm uppercase tracking-widest">{t.meaningTitle}</h3>
+              <div className="grid grid-cols-3 gap-3 mb-5">
+                {result.characters?.map((c,i)=>{
+                  const col = elColors[c.element]||elColors.Wood;
+                  return <div key={i} className={`rounded-2xl border-2 ${col.border} ${col.bg} p-4 text-center`}>
+                    <div className="text-4xl font-black text-gray-800 mb-1" style={{fontFamily:"serif"}}>{c.char}</div>
+                    <div className={`text-sm font-semibold ${col.text} mb-1`}>{c.pinyin}</div>
+                    <div className="text-xs text-gray-500">{c.meaning}</div>
+                    <div className="text-xs text-gray-400 mt-1">{c.strokes} strokes</div>
+                  </div>;
+                })}
+              </div>
+              <p className="text-gray-600 text-sm leading-relaxed bg-amber-50 rounded-xl p-4">{result.nameMeaning}</p>
+            </div>
+
+            <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-6">
+              <h3 className="font-bold text-gray-700 mb-4 text-sm uppercase tracking-widest">{t.baziTitle}</h3>
+              <div className="grid grid-cols-4 gap-3 mb-4">
+                <BaziCard label={t.year} data={result.bazi.year}/>
+                <BaziCard label={t.month} data={result.bazi.month}/>
+                <BaziCard label={t.day} data={result.bazi.day}/>
+                <BaziCard label={t.hour} data={result.bazi.hour}/>
+              </div>
+              {result.baziAnalysis&&<p className="text-gray-500 text-sm leading-relaxed bg-stone-50 rounded-xl p-4">{result.baziAnalysis}</p>}
+            </div>
+
+            <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-6">
+              <h3 className="font-bold text-gray-700 mb-1 text-sm uppercase tracking-widest">{t.phoneticTitle}</h3>
+              <p className="text-xs text-gray-400 mb-4">{t.phoneticDesc}</p>
+              <div className="flex items-center gap-4">
+                <div className="flex-1 bg-gray-50 rounded-2xl p-4 text-center">
+                  <div className="text-xs text-gray-400 mb-1">Original</div>
+                  <div className="text-xl font-bold text-gray-700">{result.form.firstName} {result.form.lastName}</div>
+                </div>
+                <div className="text-2xl text-amber-400">→</div>
+                <div className="flex-1 bg-amber-50 rounded-2xl p-4 text-center">
+                  <div className="text-xs text-amber-500 mb-1">音译 Phonetic</div>
+                  <div className="text-2xl font-bold text-gray-800" style={{fontFamily:"serif"}}>{result.phoneticOnly}</div>
+                  <div className="text-sm text-amber-600">{result.phoneticPinyin}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={handleShare} className="flex-1 bg-white border-2 border-amber-300 text-amber-700 font-semibold py-3 rounded-2xl hover:bg-amber-50 transition flex items-center justify-center gap-2">
+                {copied?"✅ Copied!":"📤 "+t.shareBtn}
+              </button>
+              <button onClick={()=>setResult(null)} className="flex-1 bg-gradient-to-r from-red-500 to-amber-500 text-white font-semibold py-3 rounded-2xl hover:opacity-90 transition flex items-center justify-center gap-2">
+                🔄 {t.newName}
+              </button>
+            </div>
+          </div>
+        )}
       </main>
+      <footer className="text-center text-xs text-gray-400 pb-8">🏮 ChineseName.ai · Bridging cultures through the art of Chinese naming</footer>
     </div>
   );
 }
