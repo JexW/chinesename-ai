@@ -144,8 +144,9 @@ Respond ONLY with valid JSON, no markdown:
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
       setResult({...parsed, bazi, form});
-    } catch {
-      setError(lang==="en"?"Something went wrong. Please try again.":"出现错误，请重试。");
+    } catch (err) {
+      console.error("Error:", err);
+      setError(String(err));
     }
     setLoading(false);
   };
