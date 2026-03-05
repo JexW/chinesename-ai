@@ -137,8 +137,8 @@ Respond ONLY with valid JSON, no markdown:
     try {
       const res = await fetch("/api/generate", {
         method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})
-      });
+        body: JSON.stringify({ prompt })
+     });
       const data = await res.json();
       const text = data.content?.map((b: {type: string; text?: string}) => b.text||"").join("")||"";
       const jsonMatch = text.match(/\{[\s\S]*\}/);
