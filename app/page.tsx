@@ -135,7 +135,7 @@ Respond ONLY with valid JSON, no markdown:
 {"chineseName":"李明阳","pinyin":"Lǐ Míng Yáng","characters":[{"char":"李","pinyin":"Lǐ","meaning":"plum tree","strokes":7,"element":"Wood"}],"phoneticOnly":"詹姆斯","phoneticPinyin":"Zhān Mǔ Sī","nameMeaning":"explanation","baziAnalysis":"analysis","luckyElement":"Fire"}`;
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/generate", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})
       });
