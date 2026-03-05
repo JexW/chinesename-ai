@@ -141,7 +141,8 @@ Respond ONLY with valid JSON, no markdown:
       });
       const data = await res.json();
       const text = data.content?.map((b: {type: string; text?: string}) => b.text||"").join("")||"";
-      const parsed = JSON.parse(text.replace(/```json|```/g,"").trim());
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
       setResult({...parsed, bazi, form});
     } catch {
       setError(lang==="en"?"Something went wrong. Please try again.":"出现错误，请重试。");
