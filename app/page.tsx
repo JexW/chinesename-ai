@@ -8,10 +8,11 @@ const translations = {
     birthDate: "Birth Date", birthTime: "Birth Time (local time)",
     birthTimeTip: "We'll automatically convert to Beijing Time for accurate BaZi calculation",
     generate: "Generate My Chinese Name", generating: "Consulting the stars...",
-    switchLang: "中文", resultTitle: "Your Chinese Name",
-    phoneticTitle: "Phonetic Translation", phoneticDesc: "Direct sound-based translation of your name",
+    switchLang: "中文",
+    phoneticTitle: "Phonetic Reference", phoneticDesc: "Direct sound-based translation (no meaning consideration)",
     baziTitle: "Your BaZi Chart", year: "Year", month: "Month", day: "Day", hour: "Hour",
-    meaningTitle: "Name Analysis", shareBtn: "Share My Name", newName: "Generate Another",
+    meaningTitle: "Name Analysis", shareBtn: "Share My Name", newName: "Generate Again",
+    chooseTitle: "Choose Your Name",
     placeholderFirst: "e.g. James", placeholderLast: "e.g. Smith", placeholderCity: "e.g. London, UK",
   },
   zh: {
@@ -20,10 +21,11 @@ const translations = {
     birthDate: "出生日期", birthTime: "出生时间（当地时间）",
     birthTimeTip: "我们将自动换算为北京时间，以准确计算八字",
     generate: "生成我的中文名", generating: "正在问卜星象...",
-    switchLang: "English", resultTitle: "你的中文名",
-    phoneticTitle: "音译名", phoneticDesc: "根据你的名字音节直接音译",
+    switchLang: "English",
+    phoneticTitle: "音译参考", phoneticDesc: "仅根据发音直译（不考虑含义）",
     baziTitle: "你的八字命盘", year: "年柱", month: "月柱", day: "日柱", hour: "时柱",
     meaningTitle: "名字解析", shareBtn: "分享我的名字", newName: "重新生成",
+    chooseTitle: "选择你的名字",
     placeholderFirst: "例如 James", placeholderLast: "例如 Smith", placeholderCity: "例如 London, UK",
   },
 };
@@ -38,22 +40,14 @@ function getBaziPillar(s: number, b: number): string {
 
 function calculateBazi(dateStr: string, timeStr: string) {
   const parts = dateStr.split("-").map(Number);
-  const year = parts[0];
-  const month = parts[1];
-  const timeParts = timeStr.split(":").map(Number);
-  const hour = timeParts[0];
-  const yearStem = (year - 4) % 10;
-  const yearBranch = (year - 4) % 12;
+  const year = parts[0], month = parts[1];
+  const hour = timeStr.split(":").map(Number)[0];
+  const yearStem = (year - 4) % 10, yearBranch = (year - 4) % 12;
   const solarMonth = month - 1;
-  const monthStem = (yearStem * 2 + solarMonth) % 10;
-  const monthBranch = (solarMonth + 2) % 12;
-  const baseDate = new Date("1900-01-01").getTime();
-  const targetDate = new Date(dateStr).getTime();
-  const dayCycle = Math.floor((targetDate - baseDate) / 86400000);
-  const dayStem = (dayCycle + 10) % 10;
-  const dayBranch = (dayCycle + 12) % 12;
-  const hourBranch = Math.floor((hour + 1) / 2) % 12;
-  const hourStem = (dayStem * 2 + hourBranch) % 10;
+  const monthStem = (yearStem * 2 + solarMonth) % 10, monthBranch = (solarMonth + 2) % 12;
+  const dayCycle = Math.floor((new Date(dateStr).getTime() - new Date("1900-01-01").getTime()) / 86400000);
+  const dayStem = (dayCycle + 10) % 10, dayBranch = (dayCycle + 12) % 12;
+  const hourBranch = Math.floor((hour + 1) / 2) % 12, hourStem = (dayStem * 2 + hourBranch) % 10;
   return {
     year: { pillar: getBaziPillar(yearStem, yearBranch), element: STEM_ELEMENTS[yearStem] },
     month: { pillar: getBaziPillar(monthStem, monthBranch), element: STEM_ELEMENTS[monthStem] },
@@ -62,20 +56,17 @@ function calculateBazi(dateStr: string, timeStr: string) {
   };
 }
 
-type ElementKey = "Wood" | "Fire" | "Earth" | "Metal" | "Water";
-const elColors: Record<ElementKey, { bg: string; border: string; text: string; badge: string }> = {
-  Wood: { bg:"bg-green-50", border:"border-green-200", text:"text-green-700", badge:"bg-green-400" },
-  Fire: { bg:"bg-red-50", border:"border-red-200", text:"text-red-700", badge:"bg-red-400" },
-  Earth: { bg:"bg-yellow-50", border:"border-yellow-200", text:"text-yellow-700", badge:"bg-yellow-400" },
-  Metal: { bg:"bg-gray-50", border:"border-gray-300", text:"text-gray-600", badge:"bg-gray-400" },
-  Water: { bg:"bg-blue-50", border:"border-blue-200", text:"text-blue-700", badge:"bg-blue-400" },
+type ElementKey = "Wood"|"Fire"|"Earth"|"Metal"|"Water";
+const elColors: Record<ElementKey, {bg:string;border:string;text:string;badge:string}> = {
+  Wood: {bg:"bg-green-50",border:"border-green-200",text:"text-green-700",badge:"bg-green-400"},
+  Fire: {bg:"bg-red-50",border:"border-red-200",text:"text-red-700",badge:"bg-red-400"},
+  Earth: {bg:"bg-yellow-50",border:"border-yellow-200",text:"text-yellow-700",badge:"bg-yellow-400"},
+  Metal: {bg:"bg-gray-50",border:"border-gray-300",text:"text-gray-600",badge:"bg-gray-400"},
+  Water: {bg:"bg-blue-50",border:"border-blue-200",text:"text-blue-700",badge:"bg-blue-400"},
 };
+function getElColor(element: string) { return elColors[element as ElementKey] || elColors.Wood; }
 
-function getElColor(element: string) {
-  return elColors[element as ElementKey] || elColors.Wood;
-}
-
-function BaziCard({ label, data }: { label: string; data: { pillar: string; element: string } }) {
+function BaziCard({label,data}:{label:string;data:{pillar:string;element:string}}) {
   const c = getElColor(data.element);
   return (
     <div className={`rounded-2xl border-2 ${c.border} ${c.bg} p-3 flex flex-col items-center gap-1`}>
@@ -87,36 +78,34 @@ function BaziCard({ label, data }: { label: string; data: { pillar: string; elem
 }
 
 function Dots() {
-  return (
-    <span className="inline-flex gap-1">
-      {[0,1,2].map(i => (
-        <span key={i} className="w-2 h-2 bg-amber-300 rounded-full animate-bounce" style={{animationDelay:`${i*0.15}s`}}/>
-      ))}
-    </span>
-  );
+  return <span className="inline-flex gap-1">{[0,1,2].map(i=><span key={i} className="w-2 h-2 bg-amber-300 rounded-full animate-bounce" style={{animationDelay:`${i*0.15}s`}}/>)}</span>;
 }
 
-interface CharData { char: string; pinyin: string; meaning: string; strokes: number; element: string; }
-interface BaziData { pillar: string; element: string; }
+interface CharData {char:string;pinyin:string;meaning:string;strokes:number;element:string}
+interface BaziData {pillar:string;element:string}
+interface NameOption {
+  chineseName:string;pinyin:string;style:string;styleZh:string;
+  characters:CharData[];nameMeaning:string;baziMatch:string;
+}
 interface ResultData {
-  chineseName: string; pinyin: string; characters: CharData[];
-  phoneticOnly: string; phoneticPinyin: string;
-  nameMeaning: string; baziAnalysis: string; luckyElement: string;
-  bazi: { year: BaziData; month: BaziData; day: BaziData; hour: BaziData };
-  form: { firstName: string; lastName: string };
+  names:NameOption[];phoneticOnly:string;phoneticPinyin:string;
+  baziAnalysis:string;luckyElement:string;
+  bazi:{year:BaziData;month:BaziData;day:BaziData;hour:BaziData};
+  form:{firstName:string;lastName:string};
 }
 
 export default function App() {
   const [lang, setLang] = useState<"en"|"zh">("en");
   const t = translations[lang];
   const [form, setForm] = useState({firstName:"",lastName:"",birthPlace:"",birthDate:"",birthTime:""});
-  const [result, setResult] = useState<ResultData | null>(null);
+  const [result, setResult] = useState<ResultData|null>(null);
+  const [selectedName, setSelectedName] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm(f => ({...f, [e.target.name]: e.target.value}));
+    setForm(f=>({...f,[e.target.name]:e.target.value}));
 
   const handleSubmit = async () => {
     if (!form.firstName||!form.birthDate||!form.birthTime||!form.birthPlace) {
@@ -124,38 +113,62 @@ export default function App() {
     }
     setError(""); setLoading(true); setResult(null);
     const bazi = calculateBazi(form.birthDate, form.birthTime);
-    const prompt = `You are a master Chinese name consultant with deep knowledge of BaZi, Chinese phonetics, and classical poetry.
-A foreign person wants a Chinese name:
+
+    const prompt = `You are a master Chinese name consultant with deep expertise in:
+- BaZi (八字) Five Elements analysis
+- Chinese phonetics and classical poetry
+- Cross-language phonetic matching (English, French, Spanish, German, Italian, etc.)
+- Traditional Chinese surnames (百家姓)
+
+A foreign person wants a BEAUTIFUL, AUTHENTIC Chinese name. NOT a phonetic transliteration.
+
+Person details:
 - Full name: ${form.firstName} ${form.lastName}
-- Birth place: ${form.birthPlace}
+- Native language / Birth place: ${form.birthPlace}
 - Birth date: ${form.birthDate}, Birth time: ${form.birthTime}
 - BaZi: Year ${bazi.year.pillar}(${bazi.year.element}), Month ${bazi.month.pillar}(${bazi.month.element}), Day ${bazi.day.pillar}(${bazi.day.element}), Hour ${bazi.hour.pillar}(${bazi.hour.element})
-Create a Chinese name that sounds like their original name AND strengthens weak BaZi elements. Also provide a pure phonetic translation.
+
+STRICT RULES:
+1. Surname MUST be a real Chinese surname from 百家姓 (e.g. 李,王,张,刘,陈,杨,赵,吴,周,徐,林,黄,孙,马,朱,胡,郭,何,高,罗)
+2. The name should SOUND like their original name - match phonetics of their native language pronunciation
+3. Characters must strengthen weak BaZi elements
+4. Name must have beautiful meaning and feel like a real Chinese person's name
+5. Generate exactly 3 name options with different styles
+
+Styles:
+- Option 1: Classical/elegant (古典风)
+- Option 2: Modern/energetic (现代风)
+- Option 3: Nature/poetic (自然风)
+
+Also provide a pure phonetic transliteration as reference.
+
 Respond ONLY with valid JSON, no markdown:
-{"chineseName":"李明阳","pinyin":"Lǐ Míng Yáng","characters":[{"char":"李","pinyin":"Lǐ","meaning":"plum tree","strokes":7,"element":"Wood"}],"phoneticOnly":"詹姆斯","phoneticPinyin":"Zhān Mǔ Sī","nameMeaning":"explanation","baziAnalysis":"analysis","luckyElement":"Fire"}`;
+{"names":[{"chineseName":"李明阳","pinyin":"Lǐ Míng Yáng","style":"Classical","styleZh":"古典风","characters":[{"char":"李","pinyin":"Lǐ","meaning":"plum tree","strokes":7,"element":"Wood"}],"nameMeaning":"explanation","baziMatch":"bazi analysis"}],"phoneticOnly":"哈利波特","phoneticPinyin":"Hā Lì Bō Tè","baziAnalysis":"brief analysis","luckyElement":"Fire"}`;
 
     try {
       const res = await fetch("/api/generate", {
         method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ prompt })
-     });
+        body: JSON.stringify({prompt})
+      });
       const data = await res.json();
-      const text = data.content?.map((b: {type: string; text?: string}) => b.text||"").join("")||"";
+      const text = data.content?.map((b:{type:string;text?:string})=>b.text||"").join("")||"";
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
       setResult({...parsed, bazi, form});
-    } catch (err) {
-      console.error("Error:", err);
-      setError(String(err));
+      setSelectedName(0);
+    } catch(err) {
+      setError(lang==="en"?"Something went wrong. Please try again.":"出现错误，请重试。");
+      console.error(err);
     }
     setLoading(false);
   };
 
   const handleShare = () => {
-    if (!result) return;
+    if (!result?.names?.[selectedName]) return;
+    const n = result.names[selectedName];
     navigator.clipboard.writeText(lang==="en"
-      ? `My Chinese name is ${result.chineseName} (${result.pinyin})! Get yours at ChineseName.ai`
-      : `我的中文名是${result.chineseName}（${result.pinyin}）！`);
+      ? `My Chinese name is ${n.chineseName} (${n.pinyin})! Get yours at ChineseName.ai`
+      : `我的中文名是${n.chineseName}（${n.pinyin}）！`);
     setCopied(true); setTimeout(()=>setCopied(false),2000);
   };
 
@@ -211,30 +224,45 @@ Respond ONLY with valid JSON, no markdown:
           </div>
         ) : (
           <div className="space-y-5">
-            <div className="bg-gradient-to-br from-red-600 to-amber-500 rounded-3xl p-8 text-white text-center shadow-xl shadow-red-200">
-              <p className="text-red-100 text-sm font-medium mb-2 uppercase tracking-widest">{t.resultTitle}</p>
-              <div className="text-7xl font-black mb-3 tracking-wider" style={{fontFamily:"serif"}}>{result.chineseName}</div>
-              <p className="text-2xl text-amber-100 font-light tracking-widest">{result.pinyin}</p>
-              {result.luckyElement && <div className="mt-4 inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-sm font-medium">⭐ Lucky Element: <strong>{result.luckyElement}</strong></div>}
+            {/* Name selector */}
+            <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-4">
+              <p className="text-xs text-gray-400 text-center mb-3 uppercase tracking-widest">{t.chooseTitle}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {result.names?.map((n, i) => (
+                  <button key={i} onClick={()=>setSelectedName(i)}
+                    className={`rounded-2xl p-3 text-center transition border-2 ${selectedName===i?"border-red-400 bg-red-50":"border-gray-100 hover:border-amber-200"}`}>
+                    <div className="text-2xl font-black text-gray-800 mb-1" style={{fontFamily:"serif"}}>{n.chineseName}</div>
+                    <div className="text-xs text-gray-500">{n.styleZh}</div>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-6">
-              <h3 className="font-bold text-gray-700 mb-4 text-sm uppercase tracking-widest">{t.meaningTitle}</h3>
-              <div className="grid grid-cols-3 gap-3 mb-5">
-                {result.characters?.map((c, i) => {
-                  const col = getElColor(c.element);
-                  return (
-                    <div key={i} className={`rounded-2xl border-2 ${col.border} ${col.bg} p-4 text-center`}>
+            {result.names?.[selectedName] && <>
+              <div className="bg-gradient-to-br from-red-600 to-amber-500 rounded-3xl p-8 text-white text-center shadow-xl shadow-red-200">
+                <p className="text-red-100 text-sm font-medium mb-2 uppercase tracking-widest">{result.names[selectedName].style}</p>
+                <div className="text-7xl font-black mb-3 tracking-wider" style={{fontFamily:"serif"}}>{result.names[selectedName].chineseName}</div>
+                <p className="text-2xl text-amber-100 font-light tracking-widest">{result.names[selectedName].pinyin}</p>
+                {result.luckyElement&&<div className="mt-4 inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-sm font-medium">⭐ Lucky Element: <strong>{result.luckyElement}</strong></div>}
+              </div>
+
+              <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-6">
+                <h3 className="font-bold text-gray-700 mb-4 text-sm uppercase tracking-widest">{t.meaningTitle}</h3>
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {result.names[selectedName].characters?.map((c,i)=>{
+                    const col=getElColor(c.element);
+                    return <div key={i} className={`rounded-2xl border-2 ${col.border} ${col.bg} p-4 text-center`}>
                       <div className="text-4xl font-black text-gray-800 mb-1" style={{fontFamily:"serif"}}>{c.char}</div>
                       <div className={`text-sm font-semibold ${col.text} mb-1`}>{c.pinyin}</div>
                       <div className="text-xs text-gray-500">{c.meaning}</div>
                       <div className="text-xs text-gray-400 mt-1">{c.strokes} strokes</div>
-                    </div>
-                  );
-                })}
+                    </div>;
+                  })}
+                </div>
+                <p className="text-gray-600 text-sm leading-relaxed bg-amber-50 rounded-xl p-4 mb-3">{result.names[selectedName].nameMeaning}</p>
+                <p className="text-gray-500 text-xs leading-relaxed bg-stone-50 rounded-xl p-3">{result.names[selectedName].baziMatch}</p>
               </div>
-              <p className="text-gray-600 text-sm leading-relaxed bg-amber-50 rounded-xl p-4">{result.nameMeaning}</p>
-            </div>
+            </>}
 
             <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-6">
               <h3 className="font-bold text-gray-700 mb-4 text-sm uppercase tracking-widest">{t.baziTitle}</h3>
@@ -244,7 +272,7 @@ Respond ONLY with valid JSON, no markdown:
                 <BaziCard label={t.day} data={result.bazi.day}/>
                 <BaziCard label={t.hour} data={result.bazi.hour}/>
               </div>
-              {result.baziAnalysis && <p className="text-gray-500 text-sm leading-relaxed bg-stone-50 rounded-xl p-4">{result.baziAnalysis}</p>}
+              {result.baziAnalysis&&<p className="text-gray-500 text-sm leading-relaxed bg-stone-50 rounded-xl p-4">{result.baziAnalysis}</p>}
             </div>
 
             <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-6">
@@ -268,7 +296,7 @@ Respond ONLY with valid JSON, no markdown:
               <button onClick={handleShare} className="flex-1 bg-white border-2 border-amber-300 text-amber-700 font-semibold py-3 rounded-2xl hover:bg-amber-50 transition flex items-center justify-center gap-2">
                 {copied?"✅ Copied!":"📤 "+t.shareBtn}
               </button>
-              <button onClick={()=>setResult(null)} className="flex-1 bg-gradient-to-r from-red-500 to-amber-500 text-white font-semibold py-3 rounded-2xl hover:opacity-90 transition flex items-center justify-center gap-2">
+              <button onClick={()=>{setResult(null);setSelectedName(0);}} className="flex-1 bg-gradient-to-r from-red-500 to-amber-500 text-white font-semibold py-3 rounded-2xl hover:opacity-90 transition flex items-center justify-center gap-2">
                 🔄 {t.newName}
               </button>
             </div>
