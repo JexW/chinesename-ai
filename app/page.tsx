@@ -120,6 +120,8 @@ export default function App() {
 - Cross-language phonetic matching (English, French, Spanish, German, Italian, etc.)
 - Traditional Chinese surnames (百家姓)
 
+IMPORTANT: Respond in ${lang === "zh" ? "Chinese (中文)" : "English"} for all explanations, meanings, and analysis. Only the JSON keys should remain in English.
+
 A foreign person wants a BEAUTIFUL, AUTHENTIC Chinese name. NOT a phonetic transliteration.
 
 Person details:
@@ -143,7 +145,7 @@ Styles:
 Also provide a pure phonetic transliteration as reference.
 
 Respond ONLY with valid JSON, no markdown:
-{"names":[{"chineseName":"李明阳","pinyin":"Lǐ Míng Yáng","style":"Classical","styleZh":"古典风","characters":[{"char":"李","pinyin":"Lǐ","meaning":"plum tree","strokes":7,"element":"Wood"}],"nameMeaning":"explanation","baziMatch":"bazi analysis"}],"phoneticOnly":"哈利波特","phoneticPinyin":"Hā Lì Bō Tè","baziAnalysis":"brief analysis","luckyElement":"Fire"}`;
+{"names":[{"chineseName":"李明阳","pinyin":"Lǐ Míng Yáng","style":"Classical","styleZh":"古典风","characters":[{"char":"李","pinyin":"Lǐ","meaning":"plum tree","strokes":7,"element":"Wood"}],"nameMeaning":"${lang === "zh" ? "用中文解释名字含义" : "explanation in English"}","baziMatch":"${lang === "zh" ? "用中文解释八字分析" : "bazi analysis in English"}"}],"phoneticOnly":"哈利波特","phoneticPinyin":"Hā Lì Bō Tè","baziAnalysis":"brief analysis","luckyElement":"Fire"}`;
 
     try {
       const res = await fetch("/api/generate", {
