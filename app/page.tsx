@@ -80,7 +80,26 @@ function BaziCard({label,data}:{label:string;data:{pillar:string;element:string}
     </div>
   );
 }
+function SpeakButton({text}: {text: string}) {
+  const [speaking, setSpeaking] = useState(false);
 
+  const speak = () => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "zh-CN";
+    utterance.rate = 0.8;
+    utterance.onstart = () => setSpeaking(true);
+    utterance.onend = () => setSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  return (
+    <button onClick={speak} className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${speaking ? "bg-red-100 text-red-600 border-2 border-red-300" : "bg-amber-50 text-amber-700 border-2 border-amber-200 hover:bg-amber-100"}`}>
+      {speaking ? "🔊 Playing..." : "🔈 Listen"}
+    </button>
+  );
+}
 function Dots() {
   return <span className="inline-flex gap-1">{[0,1,2].map(i=><span key={i} className="w-2 h-2 bg-amber-300 rounded-full animate-bounce" style={{animationDelay:`${i*0.15}s`}}/>)}</span>;
 }
@@ -257,6 +276,7 @@ Return ONLY valid JSON, no markdown, no backticks:
                 <p className="text-red-100 text-sm font-medium mb-2 uppercase tracking-widest">{result.names[selectedName].style}</p>
                 <div className="text-7xl font-black mb-3 tracking-wider" style={{fontFamily:"serif"}}>{result.names[selectedName].chineseName}</div>
                 <p className="text-2xl text-amber-100 font-light tracking-widest">{result.names[selectedName].pinyin}</p>
+                <div className="mt-3"><SpeakButton text={result.names[selectedName].chineseName}/></div>
                 {result.luckyElement&&<div className="mt-4 inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-sm font-medium">⭐ Lucky Element: <strong>{result.luckyElement}</strong></div>}
               </div>
 
