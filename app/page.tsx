@@ -12,9 +12,13 @@ const translations = {
     phoneticTitle: "Phonetic Reference", phoneticDesc: "Direct sound-based translation (no meaning consideration)",
     baziTitle: "Your BaZi Chart", year: "Year", month: "Month", day: "Day", hour: "Hour",
     meaningTitle: "Name Analysis", shareBtn: "Share My Name", newName: "Generate Again",
-    chooseTitle: "Choose Your Name",
-    elementsTitle: "Your Five Elements Advice",
+    chooseTitle: "Choose Your Name", elementsTitle: "Your Five Elements Advice",
     regenLang: "Language changed — regenerate to see analysis in new language",
+    regenSurname: "🔄 New Surname", regenGiven: "🔄 New Given Name",
+    regenSurnameLoading: "Finding...", regenGivenLoading: "Finding...",
+    unknownTime: "I don't know my birth time",
+    unknownTimeNote: "⚠️ Without birth time, the Hour Pillar cannot be calculated. Your name will be based on date + phonetics only.",
+    timeSlots: ["Early Morning (子/丑 23:00–03:00)", "Dawn (寅/卯 03:00–07:00)", "Morning (辰/巳 07:00–11:00)", "Noon (午/未 11:00–15:00)", "Afternoon (申/酉 15:00–19:00)", "Evening (戌/亥 19:00–23:00)"],
     placeholderFirst: "e.g. James", placeholderLast: "e.g. Smith", placeholderCity: "e.g. London, UK",
   },
   zh: {
@@ -27,30 +31,41 @@ const translations = {
     phoneticTitle: "音译参考", phoneticDesc: "仅根据发音直译（不考虑含义）",
     baziTitle: "你的八字命盘", year: "年柱", month: "月柱", day: "日柱", hour: "时柱",
     meaningTitle: "名字解析", shareBtn: "分享我的名字", newName: "重新生成",
-    chooseTitle: "选择你的名字",
-    elementsTitle: "你的五行建议",
+    chooseTitle: "选择你的名字", elementsTitle: "你的五行建议",
     regenLang: "语言已切换 — 重新生成以查看对应语言的分析",
+    regenSurname: "🔄 换个姓氏", regenGiven: "🔄 换个名字",
+    regenSurnameLoading: "寻找中...", regenGivenLoading: "寻找中...",
+    unknownTime: "我不知道出生时间",
+    unknownTimeNote: "⚠️ 没有出生时间，无法计算时柱。你的名字将仅根据日期和读音生成。",
+    timeSlots: ["深夜早晨（子/丑 23:00–03:00）", "黎明（寅/卯 03:00–07:00）", "上午（辰/巳 07:00–11:00）", "午间（午/未 11:00–15:00）", "下午（申/酉 15:00–19:00）", "傍晚（戌/亥 19:00–23:00）"],
     placeholderFirst: "例如 James", placeholderLast: "例如 Smith", placeholderCity: "例如 London, UK",
   },
 };
 
+const TIME_SLOT_HOURS = ["00:30", "04:00", "08:00", "12:00", "16:00", "20:00"];
 const HEAVENLY_STEMS = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
 const EARTHLY_BRANCHES = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
 const STEM_ELEMENTS = ["Wood","Wood","Fire","Fire","Earth","Earth","Metal","Metal","Water","Water"];
 
-function getBaziPillar(s: number, b: number): string {
-  return HEAVENLY_STEMS[s] + EARTHLY_BRANCHES[b];
-}
+function getBaziPillar(s: number, b: number): string { return HEAVENLY_STEMS[s] + EARTHLY_BRANCHES[b]; }
 
-function calculateBazi(dateStr: string, timeStr: string) {
+function calculateBazi(dateStr: string, timeStr: string | null) {
   const parts = dateStr.split("-").map(Number);
   const year = parts[0], month = parts[1];
-  const hour = timeStr.split(":").map(Number)[0];
   const yearStem = (year - 4) % 10, yearBranch = (year - 4) % 12;
   const solarMonth = month - 1;
   const monthStem = (yearStem * 2 + solarMonth) % 10, monthBranch = (solarMonth + 2) % 12;
   const dayCycle = Math.floor((new Date(dateStr).getTime() - new Date("1900-01-01").getTime()) / 86400000);
   const dayStem = (dayCycle + 10) % 10, dayBranch = (dayCycle + 12) % 12;
+  if (!timeStr) {
+    return {
+      year: { pillar: getBaziPillar(yearStem, yearBranch), element: STEM_ELEMENTS[yearStem] },
+      month: { pillar: getBaziPillar(monthStem, monthBranch), element: STEM_ELEMENTS[monthStem] },
+      day: { pillar: getBaziPillar(dayStem, dayBranch), element: STEM_ELEMENTS[dayStem] },
+      hour: null,
+    };
+  }
+  const hour = timeStr.split(":").map(Number)[0];
   const hourBranch = Math.floor((hour + 1) / 2) % 12, hourStem = (dayStem * 2 + hourBranch) % 10;
   return {
     year: { pillar: getBaziPillar(yearStem, yearBranch), element: STEM_ELEMENTS[yearStem] },
@@ -70,7 +85,14 @@ const elColors: Record<ElementKey, {bg:string;border:string;text:string;badge:st
 };
 function getElColor(element: string) { return elColors[element as ElementKey] || elColors.Wood; }
 
-function BaziCard({label,data}:{label:string;data:{pillar:string;element:string}}) {
+function BaziCard({label,data}:{label:string;data:{pillar:string;element:string}|null}) {
+  if (!data) return (
+    <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 p-3 flex flex-col items-center gap-1 opacity-50">
+      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</span>
+      <span className="text-2xl text-gray-300">?</span>
+      <span className="text-xs text-gray-300">Unknown</span>
+    </div>
+  );
   const c = getElColor(data.element);
   return (
     <div className={`rounded-2xl border-2 ${c.border} ${c.bg} p-3 flex flex-col items-center gap-1`}>
@@ -80,117 +102,158 @@ function BaziCard({label,data}:{label:string;data:{pillar:string;element:string}
     </div>
   );
 }
+
 function SpeakButton({text}: {text: string}) {
   const [speaking, setSpeaking] = useState(false);
-
   const speak = () => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "zh-CN";
-    utterance.rate = 0.8;
-    utterance.onstart = () => setSpeaking(true);
-    utterance.onend = () => setSpeaking(false);
-    window.speechSynthesis.speak(utterance);
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "zh-CN"; u.rate = 0.8;
+    u.onstart = () => setSpeaking(true);
+    u.onend = () => setSpeaking(false);
+    window.speechSynthesis.speak(u);
   };
-
   return (
-    <button onClick={speak} className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${speaking ? "bg-red-100 text-red-600 border-2 border-red-300" : "bg-amber-50 text-amber-700 border-2 border-amber-200 hover:bg-amber-100"}`}>
-      {speaking ? "🔊 Playing..." : "🔈 Listen"}
+    <button onClick={speak} className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${speaking?"bg-red-100 text-red-600 border-2 border-red-300":"bg-white/20 text-white border-2 border-white/30 hover:bg-white/30"}`}>
+      {speaking?"🔊 Playing...":"🔈 Listen"}
     </button>
   );
 }
+
 function Dots() {
   return <span className="inline-flex gap-1">{[0,1,2].map(i=><span key={i} className="w-2 h-2 bg-amber-300 rounded-full animate-bounce" style={{animationDelay:`${i*0.15}s`}}/>)}</span>;
 }
 
 interface CharData {char:string;pinyin:string;meaning:string;strokes:number;element:string}
 interface BaziData {pillar:string;element:string}
-interface NameOption {
-  chineseName:string;pinyin:string;style:string;styleZh:string;
-  characters:CharData[];nameMeaning:string;baziMatch:string;
-}
-interface ElementAdvice {
-  missingElements:string[];
-  jewelry:string;colors:string;direction:string;lifestyle:string;food:string;
-}
+interface NameOption {chineseName:string;pinyin:string;style:string;styleZh:string;characters:CharData[];nameMeaning:string;baziMatch:string}
+interface ElementAdvice {missingElements:string[];jewelry:string;colors:string;direction:string;lifestyle:string;food:string}
 interface ResultData {
   names:NameOption[];phoneticOnly:string;phoneticPinyin:string;
   baziAnalysis:string;luckyElement:string;elementAdvice:ElementAdvice;
-  bazi:{year:BaziData;month:BaziData;day:BaziData;hour:BaziData};
-  form:{firstName:string;lastName:string};
-  generatedLang:string;
+  bazi:{year:BaziData;month:BaziData;day:BaziData;hour:BaziData|null};
+  form:{firstName:string;lastName:string};generatedLang:string;
+}
+
+function buildPrompt(form: {firstName:string;lastName:string;birthPlace:string;birthDate:string}, timeStr: string|null, bazi: ReturnType<typeof calculateBazi>, isZh: boolean) {
+  const baziStr = `Year ${bazi.year.pillar}(${bazi.year.element}), Month ${bazi.month.pillar}(${bazi.month.element}), Day ${bazi.day.pillar}(${bazi.day.element})${bazi.hour ? `, Hour ${bazi.hour.pillar}(${bazi.hour.element})` : ", Hour: Unknown"}`;
+  const noTimeNote = !timeStr ? "\nNOTE: Birth time is unknown. Skip Hour Pillar analysis. Focus name on Year/Month/Day elements and phonetics." : "";
+  return `You are a master Chinese name consultant with deep expertise in BaZi Five Elements, Chinese phonetics, classical poetry, and traditional Chinese surnames (百家姓).
+
+IMPORTANT: Write ALL explanations, meanings, analysis, and advice in ${isZh?"Chinese (中文)":"English"}. Only JSON keys stay in English.${noTimeNote}
+
+Person:
+- First name: ${form.firstName}
+- Last name: ${form.lastName}
+- Birth place: ${form.birthPlace}
+- Birth date: ${form.birthDate}${timeStr ? `, Birth time: ${timeStr}` : " (birth time unknown)"}
+- BaZi: ${baziStr}
+
+NAMING RULES:
+1. Chinese = SURNAME first + GIVEN NAME after
+2. SURNAME from 百家姓 based on LAST NAME sound: Potter->朴, Smith->史, Johnson->庄, Brown->白, Williams->卫, Jones->庄, Taylor->戴, Wilson->魏, Davies->戴, Evans->叶
+3. GIVEN NAME (1-2 chars) based on FIRST NAME sound: Harry->海瑞, James->杰明, Emma->艾梅, John->俊, Sarah->莎瑞
+4. Strengthen weak/missing BaZi elements
+5. Beautiful real Chinese name, NOT transliteration
+6. 3 options: Classical(古典风), Modern(现代风), Nature(自然风)
+
+PHONETIC: Keep Western order (First then Last): Harry Potter->哈利·波特
+
+Return ONLY valid JSON, no markdown:
+{"names":[{"chineseName":"史明浩","pinyin":"Shǐ Míng Hào","style":"Classical","styleZh":"古典风","characters":[{"char":"史","pinyin":"Shǐ","meaning":"historian","strokes":5,"element":"Metal"}],"nameMeaning":"explanation","baziMatch":"bazi note"}],"phoneticOnly":"哈利·波特","phoneticPinyin":"Hā Lì Bō Tè","baziAnalysis":"analysis","luckyElement":"Fire","elementAdvice":{"missingElements":["Water"],"jewelry":"silver","colors":"blue","direction":"North","lifestyle":"tips","food":"recommendations"}}`;
+}
+
+function buildRegenPrompt(type: "surname"|"given", currentName: string, form: {firstName:string;lastName:string;birthPlace:string}, isZh: boolean) {
+  if (type === "surname") {
+    return `Give me 1 alternative Chinese surname from 百家姓 for someone whose last name is "${form.lastName}" from ${form.birthPlace}. The surname should sound similar to "${form.lastName}". Current surname is "${currentName[0]}". Give a DIFFERENT one.
+Return ONLY JSON: {"surname":"新","pinyin":"Xīn","meaning":"explanation in ${isZh?"Chinese":"English"}"}`;
+  } else {
+    const givenPart = currentName.slice(1);
+    return `Give me 1 alternative Chinese given name (1-2 characters) for someone whose first name is "${form.firstName}". Should sound like "${form.firstName}". Current given name is "${givenPart}". Give a DIFFERENT one.
+Return ONLY JSON: {"given":"明浩","pinyin":"Míng Hào","meaning":"explanation in ${isZh?"Chinese":"English"}","characters":[{"char":"明","pinyin":"Míng","meaning":"bright","strokes":8,"element":"Fire"}]}`;
+  }
 }
 
 export default function App() {
   const [lang, setLang] = useState<"en"|"zh">("en");
   const t = translations[lang];
   const [form, setForm] = useState({firstName:"",lastName:"",birthPlace:"",birthDate:"",birthTime:""});
+  const [unknownTime, setUnknownTime] = useState(false);
+  const [timeSlot, setTimeSlot] = useState<number|null>(null);
   const [result, setResult] = useState<ResultData|null>(null);
   const [selectedName, setSelectedName] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [regenLoading, setRegenLoading] = useState<"surname"|"given"|null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f=>({...f,[e.target.name]:e.target.value}));
 
+  const getEffectiveTime = () => {
+    if (unknownTime) return timeSlot !== null ? TIME_SLOT_HOURS[timeSlot] : null;
+    return form.birthTime || null;
+  };
+
   const handleSubmit = async () => {
-    if (!form.firstName||!form.birthDate||!form.birthTime||!form.birthPlace) {
+    if (!form.firstName||!form.birthDate||!form.birthPlace) {
       setError(lang==="en"?"Please fill in all required fields.":"请填写所有必填项。"); return;
     }
+    if (!unknownTime && !form.birthTime) {
+      setError(lang==="en"?"Please enter birth time or select 'I don't know'.":"请输入出生时间或选择「不知道」。"); return;
+    }
     setError(""); setLoading(true); setResult(null);
-    const bazi = calculateBazi(form.birthDate, form.birthTime);
-    const isZh = lang === "zh";
-
-    const prompt = `You are a master Chinese name consultant with deep expertise in BaZi Five Elements, Chinese phonetics, classical poetry, and traditional Chinese surnames (百家姓).
-
-IMPORTANT: Write ALL explanations, meanings, analysis, and advice in ${isZh ? "Chinese (中文)" : "English"}. Only JSON keys stay in English.
-
-Person details:
-- First name (given name): ${form.firstName}
-- Last name (family name): ${form.lastName}
-- Birth place: ${form.birthPlace}
-- Birth date: ${form.birthDate}, Birth time: ${form.birthTime}
-- BaZi: Year ${bazi.year.pillar}(${bazi.year.element}), Month ${bazi.month.pillar}(${bazi.month.element}), Day ${bazi.day.pillar}(${bazi.day.element}), Hour ${bazi.hour.pillar}(${bazi.hour.element})
-
-NAMING RULES:
-1. Chinese name = SURNAME first + GIVEN NAME after (opposite of Western order)
-2. Chinese SURNAME: pick from 百家姓 based on sound of their Western LAST NAME. Example: Potter->朴, Smith->史, Johnson->庄, Brown->白, Williams->卫
-3. Chinese GIVEN NAME (1-2 chars): based on sound of their Western FIRST NAME. Example: Harry->海瑞, James->杰明, Emma->艾梅
-4. Strengthen weak/missing BaZi elements with character choices
-5. Name must feel like a beautiful real Chinese name
-6. Generate 3 options: Classical(古典风), Modern(现代风), Nature(自然风)
-
-PHONETIC REFERENCE: Also provide a pure phonetic transliteration keeping WESTERN ORDER (First Name first, then Last Name), e.g. Harry Potter -> 哈利·波特
-
-FIVE ELEMENTS ADVICE: Analyze which elements are missing or weak in the BaZi chart, then provide specific life advice for those missing elements covering: jewelry/accessories, lucky colors, lucky direction, lifestyle tips, and recommended foods.
-
-Return ONLY valid JSON, no markdown, no backticks:
-{"names":[{"chineseName":"史明浩","pinyin":"Shǐ Míng Hào","style":"Classical","styleZh":"古典风","characters":[{"char":"史","pinyin":"Shǐ","meaning":"historian","strokes":5,"element":"Metal"}],"nameMeaning":"explanation","baziMatch":"how name addresses bazi"}],"phoneticOnly":"哈利·波特","phoneticPinyin":"Hā Lì Bō Tè","baziAnalysis":"chart analysis","luckyElement":"Fire","elementAdvice":{"missingElements":["Water","Wood"],"jewelry":"silver or white gold accessories","colors":"blue and green","direction":"North and East","lifestyle":"lifestyle tips","food":"food recommendations"}}`;
-
+    const effectiveTime = getEffectiveTime();
+    const bazi = calculateBazi(form.birthDate, effectiveTime);
+    const prompt = buildPrompt(form, effectiveTime, bazi, lang==="zh");
     try {
-      const res = await fetch("/api/generate", {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({prompt})
-      });
+      const res = await fetch("/api/generate", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setResult({...data, bazi, form, generatedLang: lang});
+      setResult({...data, bazi, form, generatedLang:lang});
       setSelectedName(0);
     } catch(err) {
-      console.error("Error:", err);
+      console.error(err);
       setError(lang==="en"?"Something went wrong. Please try again.":"出现错误，请重试。");
     }
     setLoading(false);
   };
 
+  const handleRegen = async (type: "surname"|"given") => {
+    if (!result) return;
+    setRegenLoading(type);
+    const currentName = result.names[selectedName].chineseName;
+    const prompt = buildRegenPrompt(type, currentName, form, lang==="zh");
+    try {
+      const res = await fetch("/api/generate", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      const newNames = result.names.map((n, i) => {
+        if (i !== selectedName) return n;
+        if (type === "surname") {
+          const newSurname = data.surname || n.chineseName[0];
+          const newPinyin = (data.pinyin || n.pinyin.split(" ")[0]) + " " + n.pinyin.split(" ").slice(1).join(" ");
+          const newChar: CharData = {char: newSurname, pinyin: data.pinyin||"", meaning: data.meaning||"", strokes: 0, element: n.characters[0]?.element||"Metal"};
+          return {...n, chineseName: newSurname + n.chineseName.slice(1), pinyin: newPinyin, characters: [newChar, ...n.characters.slice(1)]};
+        } else {
+          const newGiven = data.given || n.chineseName.slice(1);
+          const surnameChar = n.characters[0];
+          const newPinyin = n.pinyin.split(" ")[0] + " " + (data.pinyin||"");
+          return {...n, chineseName: n.chineseName[0] + newGiven, pinyin: newPinyin, characters: [surnameChar, ...(data.characters||n.characters.slice(1))]};
+        }
+      });
+      setResult({...result, names: newNames});
+    } catch(err) {
+      console.error(err);
+    }
+    setRegenLoading(null);
+  };
+
   const handleShare = () => {
     if (!result?.names?.[selectedName]) return;
     const n = result.names[selectedName];
-    navigator.clipboard.writeText(lang==="en"
-      ? `My Chinese name is ${n.chineseName} (${n.pinyin})! Get yours at ChineseName.ai`
-      : `我的中文名是${n.chineseName}（${n.pinyin}）！`);
+    navigator.clipboard.writeText(lang==="en"?`My Chinese name is ${n.chineseName} (${n.pinyin})! Get yours at ChineseName.ai`:`我的中文名是${n.chineseName}（${n.pinyin}）！`);
     setCopied(true); setTimeout(()=>setCopied(false),2000);
   };
 
@@ -230,17 +293,39 @@ Return ONLY valid JSON, no markdown, no backticks:
               <label className="block text-sm font-semibold text-gray-600 mb-1.5">{t.birthPlace} *</label>
               <input name="birthPlace" value={form.birthPlace} onChange={handleChange} placeholder={t.placeholderCity} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300 transition"/>
             </div>
-            <div className="grid grid-cols-2 gap-4 mb-2">
+            <div className="grid grid-cols-2 gap-4 mb-3">
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-1.5">{t.birthDate} *</label>
                 <input type="date" name="birthDate" value={form.birthDate} onChange={handleChange} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-300 transition"/>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1.5">{t.birthTime} *</label>
-                <input type="time" name="birthTime" value={form.birthTime} onChange={handleChange} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-300 transition"/>
+                <label className="block text-sm font-semibold text-gray-600 mb-1.5">{t.birthTime} {unknownTime?"":"*"}</label>
+                <input type="time" name="birthTime" value={form.birthTime} onChange={handleChange} disabled={unknownTime} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-300 transition disabled:opacity-40 disabled:bg-gray-50"/>
               </div>
             </div>
-            <p className="text-xs text-amber-600 mb-6">⏰ {t.birthTimeTip}</p>
+
+            {/* Unknown time toggle */}
+            <label className="flex items-center gap-2 cursor-pointer mb-3">
+              <input type="checkbox" checked={unknownTime} onChange={e=>{setUnknownTime(e.target.checked);setTimeSlot(null);}} className="w-4 h-4 accent-amber-500"/>
+              <span className="text-sm text-amber-700 font-medium">{t.unknownTime}</span>
+            </label>
+
+            {unknownTime && (
+              <div className="mb-4">
+                <p className="text-xs text-amber-600 mb-2">{t.unknownTimeNote}</p>
+                <p className="text-xs text-gray-500 mb-2">{lang==="en"?"Optional: pick an approximate time period:":"可选：选择大概的时间段："}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {t.timeSlots.map((slot, i) => (
+                    <button key={i} onClick={()=>setTimeSlot(timeSlot===i?null:i)}
+                      className={`text-xs px-3 py-2 rounded-xl border transition ${timeSlot===i?"border-amber-400 bg-amber-50 text-amber-700 font-semibold":"border-gray-200 text-gray-500 hover:border-amber-200"}`}>
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!unknownTime && <p className="text-xs text-amber-600 mb-4">⏰ {t.birthTimeTip}</p>}
             {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
             <button onClick={handleSubmit} disabled={loading} className="w-full bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-600 hover:to-amber-600 disabled:opacity-60 text-white font-bold py-4 rounded-2xl transition shadow-md shadow-amber-200 flex items-center justify-center gap-2">
               {loading?<><Dots/><span>{t.generating}</span></>:<><span>🏮</span>{t.generate}</>}
@@ -248,12 +333,8 @@ Return ONLY valid JSON, no markdown, no backticks:
           </div>
         ) : (
           <div className="space-y-5">
-
-            {/* Language mismatch warning */}
             {langMismatch && (
-              <div className="bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 text-amber-700 text-sm text-center flex items-center justify-center gap-2">
-                ⚠️ {t.regenLang}
-              </div>
+              <div className="bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 text-amber-700 text-sm text-center">⚠️ {t.regenLang}</div>
             )}
 
             {/* Name selector */}
@@ -275,9 +356,21 @@ Return ONLY valid JSON, no markdown, no backticks:
               <div className="bg-gradient-to-br from-red-600 to-amber-500 rounded-3xl p-8 text-white text-center shadow-xl shadow-red-200">
                 <p className="text-red-100 text-sm font-medium mb-2 uppercase tracking-widest">{result.names[selectedName].style}</p>
                 <div className="text-7xl font-black mb-3 tracking-wider" style={{fontFamily:"serif"}}>{result.names[selectedName].chineseName}</div>
-                <p className="text-2xl text-amber-100 font-light tracking-widest">{result.names[selectedName].pinyin}</p>
-                <div className="mt-3"><SpeakButton text={result.names[selectedName].chineseName}/></div>
-                {result.luckyElement&&<div className="mt-4 inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-sm font-medium">⭐ Lucky Element: <strong>{result.luckyElement}</strong></div>}
+                <p className="text-2xl text-amber-100 font-light tracking-widest mb-3">{result.names[selectedName].pinyin}</p>
+                <SpeakButton text={result.names[selectedName].chineseName}/>
+                {result.luckyElement&&<div className="mt-3 inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-sm font-medium">⭐ Lucky Element: <strong>{result.luckyElement}</strong></div>}
+
+                {/* Regen buttons */}
+                <div className="mt-4 flex gap-2 justify-center">
+                  <button onClick={()=>handleRegen("surname")} disabled={regenLoading!==null}
+                    className="text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-full border border-white/30 transition disabled:opacity-50">
+                    {regenLoading==="surname"?t.regenSurnameLoading:t.regenSurname}
+                  </button>
+                  <button onClick={()=>handleRegen("given")} disabled={regenLoading!==null}
+                    className="text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-full border border-white/30 transition disabled:opacity-50">
+                    {regenLoading==="given"?t.regenGivenLoading:t.regenGiven}
+                  </button>
+                </div>
               </div>
 
               {/* Name analysis */}
@@ -302,6 +395,7 @@ Return ONLY valid JSON, no markdown, no backticks:
             {/* BaZi chart */}
             <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-6">
               <h3 className="font-bold text-gray-700 mb-4 text-sm uppercase tracking-widest">{t.baziTitle}</h3>
+              {!result.bazi.hour && <p className="text-xs text-amber-600 mb-3">⚠️ {t.unknownTimeNote}</p>}
               <div className="grid grid-cols-4 gap-3 mb-4">
                 <BaziCard label={t.year} data={result.bazi.year}/>
                 <BaziCard label={t.month} data={result.bazi.month}/>
@@ -316,20 +410,20 @@ Return ONLY valid JSON, no markdown, no backticks:
               <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-6">
                 <h3 className="font-bold text-gray-700 mb-2 text-sm uppercase tracking-widest">{t.elementsTitle}</h3>
                 {result.elementAdvice.missingElements?.length > 0 && (
-                  <div className="flex gap-2 mb-4">
+                  <div className="flex gap-2 mb-4 flex-wrap">
                     {result.elementAdvice.missingElements.map((el,i)=>{
-                      const c = getElColor(el);
-                      return <span key={i} className={`${c.badge} text-white text-xs px-3 py-1 rounded-full font-medium`}>{getElColor(el).icon} {el}</span>;
+                      const c=getElColor(el);
+                      return <span key={i} className={`${c.badge} text-white text-xs px-3 py-1 rounded-full font-medium`}>{c.icon} {el}</span>;
                     })}
                   </div>
                 )}
                 <div className="grid grid-cols-1 gap-3">
                   {[
-                    {icon:"💍", label: lang==="zh"?"首饰配件":"Jewelry", value: result.elementAdvice.jewelry},
-                    {icon:"🎨", label: lang==="zh"?"幸运颜色":"Lucky Colors", value: result.elementAdvice.colors},
-                    {icon:"🧭", label: lang==="zh"?"吉利方位":"Lucky Direction", value: result.elementAdvice.direction},
-                    {icon:"🌱", label: lang==="zh"?"生活建议":"Lifestyle", value: result.elementAdvice.lifestyle},
-                    {icon:"🍽️", label: lang==="zh"?"饮食建议":"Food", value: result.elementAdvice.food},
+                    {icon:"💍",label:lang==="zh"?"首饰配件":"Jewelry",value:result.elementAdvice.jewelry},
+                    {icon:"🎨",label:lang==="zh"?"幸运颜色":"Lucky Colors",value:result.elementAdvice.colors},
+                    {icon:"🧭",label:lang==="zh"?"吉利方位":"Lucky Direction",value:result.elementAdvice.direction},
+                    {icon:"🌱",label:lang==="zh"?"生活建议":"Lifestyle",value:result.elementAdvice.lifestyle},
+                    {icon:"🍽️",label:lang==="zh"?"饮食建议":"Food",value:result.elementAdvice.food},
                   ].map((item,i)=>(
                     <div key={i} className="flex gap-3 bg-amber-50 rounded-xl p-3 items-start">
                       <span className="text-xl">{item.icon}</span>
