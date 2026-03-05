@@ -158,8 +158,8 @@ IMPORTANT: Return ONLY a JSON object. No markdown. No backticks. No explanation 
         body: JSON.stringify({prompt})
       });
       const data = await res.json();
-      const text = data.content?.map((b:{type:string;text?:string})=>b.text||"").join("")||"";
-      const parsed = safeParseJSON(text);
+      if (data.error) throw new Error(data.error);
+      const parsed = data;
       setResult({...parsed, bazi, form});
       setSelectedName(0);
     } catch(err) {

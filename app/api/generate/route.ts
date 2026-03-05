@@ -4,7 +4,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const prompt = body.prompt;
-    
+
     if (!prompt) {
       return NextResponse.json({ error: "No prompt provided" }, { status: 400 });
     }
@@ -18,12 +18,23 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
+        max_tokens: 2000,
         messages: [{ role: "user", content: prompt }],
       }),
     });
+
     const data = await res.json();
-    return NextResponse.json(data);
+    const text = data.content?.map((b: {type: string; text?: string}) => b.text || "").join("") || "";
+    
+    // Extract and parse JSON safely on the server side
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) {
+      return NextResponse.json({ error: "No JSON in response", raw: text }, { status: 500 });
+    }
+    
+    const parsed = JSON.parse(match[0]);
+    return NextResponse.json(parsed);
+
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
