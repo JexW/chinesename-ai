@@ -94,6 +94,13 @@ interface ResultData {
   form:{firstName:string;lastName:string};
 }
 
+function safeParseJSON(text: string) {
+  const cleaned = text.replace(/[\x00-\x1F\x7F]/g, " ").trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error("No JSON found");
+  return JSON.parse(match[0]);
+}
+
 export default function App() {
   const [lang, setLang] = useState<"en"|"zh">("en");
   const t = translations[lang];
@@ -113,39 +120,37 @@ export default function App() {
     }
     setError(""); setLoading(true); setResult(null);
     const bazi = calculateBazi(form.birthDate, form.birthTime);
+    const isZh = lang === "zh";
 
-    const prompt = `You are a master Chinese name consultant with deep expertise in:
-- BaZi (八字) Five Elements analysis
-- Chinese phonetics and classical poetry
-- Cross-language phonetic matching (English, French, Spanish, German, Italian, etc.)
-- Traditional Chinese surnames (百家姓)
+    const prompt = `You are a master Chinese name consultant with deep expertise in BaZi (八字) Five Elements, Chinese phonetics, classical poetry, cross-language phonetics, and traditional Chinese surnames (百家姓).
 
-IMPORTANT: Respond in ${lang === "zh" ? "Chinese (中文)" : "English"} for all explanations, meanings, and analysis. Only the JSON keys should remain in English.
-
-A foreign person wants a BEAUTIFUL, AUTHENTIC Chinese name. NOT a phonetic transliteration.
+IMPORTANT: Write ALL explanations, meanings, and analysis in ${isZh ? "Chinese (中文)" : "English"}. Only JSON keys stay in English.
 
 Person details:
-- Full name: ${form.firstName} ${form.lastName}
-- Native language / Birth place: ${form.birthPlace}
+- First name (given name): ${form.firstName}
+- Last name (family name): ${form.lastName}
+- Birth place / native language region: ${form.birthPlace}
 - Birth date: ${form.birthDate}, Birth time: ${form.birthTime}
 - BaZi: Year ${bazi.year.pillar}(${bazi.year.element}), Month ${bazi.month.pillar}(${bazi.month.element}), Day ${bazi.day.pillar}(${bazi.day.element}), Hour ${bazi.hour.pillar}(${bazi.hour.element})
 
-STRICT RULES:
-1. Surname MUST be a real Chinese surname from 百家姓 (e.g. 李,王,张,刘,陈,杨,赵,吴,周,徐,林,黄,孙,马,朱,胡,郭,何,高,罗)
-2. The name should SOUND like their original name - match phonetics of their native language pronunciation
-3. Characters must strengthen weak BaZi elements
-4. Name must have beautiful meaning and feel like a real Chinese person's name
-5. Generate exactly 3 name options with different styles
+NAMING RULES:
+1. Chinese name structure is SURNAME + GIVEN NAME (opposite of Western order)
+2. The Chinese SURNAME should be chosen from 百家姓 based on the sound of their Western LAST NAME (family name). Example: Smith -> 史 (Shi), Johnson -> 庄 (Zhuang), Potter -> 朴 (Pu)
+3. The Chinese GIVEN NAME (1-2 characters) should sound like their Western FIRST NAME. Example: Harry -> 海瑞, James -> 杰明
+4. Characters must strengthen weak BaZi elements
+5. Name must feel like a real, beautiful Chinese name - NOT a transliteration
+6. Generate exactly 3 options with different styles
 
 Styles:
 - Option 1: Classical/elegant (古典风)
 - Option 2: Modern/energetic (现代风)
 - Option 3: Nature/poetic (自然风)
 
-Also provide a pure phonetic transliteration as reference.
+Also provide a pure phonetic transliteration for reference.
 
-Respond ONLY with valid JSON, no markdown:
-{"names":[{"chineseName":"李明阳","pinyin":"Lǐ Míng Yáng","style":"Classical","styleZh":"古典风","characters":[{"char":"李","pinyin":"Lǐ","meaning":"plum tree","strokes":7,"element":"Wood"}],"nameMeaning":"${lang === "zh" ? "用中文解释名字含义" : "explanation in English"}","baziMatch":"${lang === "zh" ? "用中文解释八字分析" : "bazi analysis in English"}"}],"phoneticOnly":"哈利波特","phoneticPinyin":"Hā Lì Bō Tè","baziAnalysis":"brief analysis","luckyElement":"Fire"}`;
+IMPORTANT: Return ONLY a JSON object. No markdown. No backticks. No explanation outside JSON. Escape all special characters properly.
+
+{"names":[{"chineseName":"史明浩","pinyin":"Shǐ Míng Hào","style":"Classical","styleZh":"古典风","characters":[{"char":"史","pinyin":"Shǐ","meaning":"historian","strokes":5,"element":"Metal"},{"char":"明","pinyin":"Míng","meaning":"bright","strokes":8,"element":"Fire"},{"char":"浩","pinyin":"Hào","meaning":"vast","strokes":10,"element":"Water"}],"nameMeaning":"name explanation here","baziMatch":"bazi analysis here"}],"phoneticOnly":"史密斯·詹姆斯","phoneticPinyin":"Shǐ Mì Sī Zhān Mǔ Sī","baziAnalysis":"brief chart analysis","luckyElement":"Fire"}`;
 
     try {
       const res = await fetch("/api/generate", {
@@ -154,13 +159,12 @@ Respond ONLY with valid JSON, no markdown:
       });
       const data = await res.json();
       const text = data.content?.map((b:{type:string;text?:string})=>b.text||"").join("")||"";
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+      const parsed = safeParseJSON(text);
       setResult({...parsed, bazi, form});
       setSelectedName(0);
     } catch(err) {
+      console.error("Parse error:", err);
       setError(lang==="en"?"Something went wrong. Please try again.":"出现错误，请重试。");
-      console.error(err);
     }
     setLoading(false);
   };
@@ -226,7 +230,6 @@ Respond ONLY with valid JSON, no markdown:
           </div>
         ) : (
           <div className="space-y-5">
-            {/* Name selector */}
             <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-4">
               <p className="text-xs text-gray-400 text-center mb-3 uppercase tracking-widest">{t.chooseTitle}</p>
               <div className="grid grid-cols-3 gap-2">
