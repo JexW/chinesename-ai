@@ -167,7 +167,7 @@ Return ONLY valid JSON, no markdown:
 function buildRegenPrompt(type: "surname"|"given", currentName: string, form: {firstName:string;lastName:string;birthPlace:string}, isZh: boolean) {
   if (type === "surname") {
     return `Give me 1 alternative Chinese surname from 百家姓 for someone whose last name is "${form.lastName}" from ${form.birthPlace}. The surname should sound similar to "${form.lastName}". Current surname is "${currentName[0]}". Give a DIFFERENT one.
-Return ONLY JSON: {"surname":"新","pinyin":"Xīn","meaning":"explanation in ${isZh?"Chinese":"English"}"}`;
+Return ONLY JSON: {"surname":"新","pinyin":"Xīn","meaning":"explanation in ${isZh?"Chinese":"English"}","strokes":13,"element":"Metal"}
   } else {
     const givenPart = currentName.slice(1);
     return `Give me 1 alternative Chinese given name (1-2 characters) for someone whose first name is "${form.firstName}". Should sound like "${form.firstName}". Current given name is "${givenPart}". Give a DIFFERENT one.
@@ -234,7 +234,7 @@ export default function App() {
         if (type === "surname") {
           const newSurname = data.surname || n.chineseName[0];
           const newPinyin = (data.pinyin || n.pinyin.split(" ")[0]) + " " + n.pinyin.split(" ").slice(1).join(" ");
-          const newChar: CharData = {char: newSurname, pinyin: data.pinyin||"", meaning: data.meaning||"", strokes: 0, element: n.characters[0]?.element||"Metal"};
+          const newChar: CharData = {char: newSurname, pinyin: data.pinyin||"", meaning: data.meaning||"", strokes: data.strokes||0, element: n.characters[0]?.element||"Metal"};
           return {...n, chineseName: newSurname + n.chineseName.slice(1), pinyin: newPinyin, characters: [newChar, ...n.characters.slice(1)]};
         } else {
           const newGiven = data.given || n.chineseName.slice(1);
