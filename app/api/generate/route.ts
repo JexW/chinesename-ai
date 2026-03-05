@@ -16,5 +16,6 @@ export async function POST(req: NextRequest) {
     }),
   });
   const data = await res.json();
+  console.log("API response:", JSON.stringify(data).slice(0, 500));
   return NextResponse.json(data);
 }
