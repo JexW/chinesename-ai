@@ -165,13 +165,12 @@ Return ONLY valid JSON, no markdown:
 }
 
 function buildRegenPrompt(type: "surname"|"given", currentName: string, form: {firstName:string;lastName:string;birthPlace:string}, isZh: boolean) {
+  const lang = isZh ? "Chinese" : "English";
   if (type === "surname") {
-    return `Give me 1 alternative Chinese surname from 百家姓 for someone whose last name is "${form.lastName}" from ${form.birthPlace}. The surname should sound similar to "${form.lastName}". Current surname is "${currentName[0]}". Give a DIFFERENT one.
-Return ONLY JSON: {"surname":"新","pinyin":"Xīn","meaning":"explanation in ${isZh?"Chinese":"English"}","strokes":13,"element":"Metal"}
+    return `Give me 1 alternative Chinese surname from 百家姓 for someone whose last name is "${form.lastName}" from ${form.birthPlace}. The surname should sound similar to "${form.lastName}". Current surname is "${currentName[0]}". Give a DIFFERENT one. Return ONLY JSON: {"surname":"汪","pinyin":"Wāng","meaning":"explanation in ${lang}","strokes":7,"element":"Water"}`;
   } else {
     const givenPart = currentName.slice(1);
-    return `Give me 1 alternative Chinese given name (1-2 characters) for someone whose first name is "${form.firstName}". Should sound like "${form.firstName}". Current given name is "${givenPart}". Give a DIFFERENT one.
-Return ONLY JSON: {"given":"明浩","pinyin":"Míng Hào","meaning":"explanation in ${isZh?"Chinese":"English"}","characters":[{"char":"明","pinyin":"Míng","meaning":"bright","strokes":8,"element":"Fire"}]}`;
+    return `Give me 1 alternative Chinese given name (1-2 characters) for someone whose first name is "${form.firstName}". Should sound like "${form.firstName}". Current given name is "${givenPart}". Give a DIFFERENT one. Return ONLY JSON: {"given":"明浩","pinyin":"Míng Hào","meaning":"explanation in ${lang}","characters":[{"char":"明","pinyin":"Míng","meaning":"bright","strokes":8,"element":"Fire"}]}`;
   }
 }
 
