@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 const elColors: Record<string, string> = {
   Wood: "bg-green-50 border-green-200 text-green-700",
