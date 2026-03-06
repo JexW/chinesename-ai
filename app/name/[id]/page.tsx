@@ -1,24 +1,30 @@
 import { createClient } from "@supabase/supabase-js";
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-const elColors: Record<string, string> = {
-  Wood: "bg-green-50 border-green-200 text-green-700",
-  Fire: "bg-red-50 border-red-200 text-red-700",
-  Earth: "bg-yellow-50 border-yellow-200 text-yellow-700",
-  Metal: "bg-gray-50 border-gray-300 text-gray-600",
-  Water: "bg-blue-50 border-blue-200 text-blue-700",
-};
+
 export default async function NamePage({ params }: { params: { id: string } }) {
-  const { data } = await supabase.from("saved_names").select("*").eq("id", params.id).single();
-  if (!data) return (
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  const { data, error } = await supabase.from("saved_names").select("*").eq("id", params.id).single();
+  
+  if (!data || error) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-gray-400">
       <span className="text-4xl">🏮</span>
       <p>Name not found</p>
+      <p className="text-xs">{error?.message}</p>
       <a href="/" className="text-red-500 hover:underline">Generate your own →</a>
     </div>
   );
+
+  const elColors: Record<string, string> = {
+    Wood: "bg-green-50 border-green-200 text-green-700",
+    Fire: "bg-red-50 border-red-200 text-red-700",
+    Earth: "bg-yellow-50 border-yellow-200 text-yellow-700",
+    Metal: "bg-gray-50 border-gray-300 text-gray-600",
+    Water: "bg-blue-50 border-blue-200 text-blue-700",
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-red-50 py-12 px-4">
       <div className="max-w-lg mx-auto space-y-5">
