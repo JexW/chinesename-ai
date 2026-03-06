@@ -249,12 +249,40 @@ export default function App() {
     setRegenLoading(null);
   };
 
-  const handleShare = () => {
-    if (!result?.names?.[selectedName]) return;
-    const n = result.names[selectedName];
-    navigator.clipboard.writeText(lang==="en"?`My Chinese name is ${n.chineseName} (${n.pinyin})! Get yours at ChineseName.ai`:`我的中文名是${n.chineseName}（${n.pinyin}）！`);
-    setCopied(true); setTimeout(()=>setCopied(false),2000);
-  };
+  const handleShare = async () => {
+  if (!result?.names?.[selectedName]) return;
+  const n = result.names[selectedName];
+  try {
+    const res = await fetch("/api/save-name", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        first_name: result.form.firstName,
+        last_name: result.form.lastName,
+        chinese_name: n.chineseName,
+        pinyin: n.pinyin,
+        style: n.style,
+        characters: n.characters,
+        name_meaning: n.nameMeaning,
+        bazi: result.bazi,
+        element_advice: result.elementAdvice,
+        bazi_analysis: result.baziAnalysis,
+        lucky_element: result.luckyElement,
+        phonetic_only: result.phoneticOnly,
+        phonetic_pinyin: result.phoneticPinyin,
+      })
+    });
+    const data = await res.json();
+    if (data.id) {
+      const url = `${window.location.origin}/name/${data.id}`;
+      navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(()=>setCopied(false),3000);
+    }
+  } catch(err) {
+    console.error(err);
+  }
+};
 
   const langMismatch = result && result.generatedLang !== lang;
 
