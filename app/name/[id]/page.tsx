@@ -1,29 +1,51 @@
+"use client";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
-export default async function NamePage({ params }: { params: { id: string } }) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-  const { data, error } = await supabase.from("saved_names").select("*").eq("id", params.id).single();
-  
-  if (!data || error) return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-gray-400">
-      <span className="text-4xl">🏮</span>
-      <p>Name not found</p>
-      <p className="text-xs">{error?.message}</p>
-      <a href="/" className="text-red-500 hover:underline">Generate your own →</a>
+const elColors: Record<string, string> = {
+  Wood: "bg-green-50 border-green-200 text-green-700",
+  Fire: "bg-red-50 border-red-200 text-red-700",
+  Earth: "bg-yellow-50 border-yellow-200 text-yellow-700",
+  Metal: "bg-gray-50 border-gray-300 text-gray-600",
+  Water: "bg-blue-50 border-blue-200 text-blue-700",
+};
+
+export default function NamePage() {
+  const params = useParams();
+  const id = params.id as string;
+  const [data, setData] = useState<Record<string,unknown>|null>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from("saved_names").select("*").eq("id", id).single()
+      .then(({ data, error }) => {
+        if (error) setError(error.message);
+        else setData(data);
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <span className="text-4xl animate-pulse">🏮</span>
     </div>
   );
 
-  const elColors: Record<string, string> = {
-    Wood: "bg-green-50 border-green-200 text-green-700",
-    Fire: "bg-red-50 border-red-200 text-red-700",
-    Earth: "bg-yellow-50 border-yellow-200 text-yellow-700",
-    Metal: "bg-gray-50 border-gray-300 text-gray-600",
-    Water: "bg-blue-50 border-blue-200 text-blue-700",
-  };
+  if (!data) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-gray-400">
+      <span className="text-4xl">🏮</span>
+      <p>Name not found</p>
+      <p className="text-xs text-red-400">{error}</p>
+      <a href="/" className="text-red-500 hover:underline">Generate your own →</a>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-red-50 py-12 px-4">
@@ -35,14 +57,14 @@ export default async function NamePage({ params }: { params: { id: string } }) {
           </a>
         </div>
         <div className="bg-gradient-to-br from-red-600 to-amber-500 rounded-3xl p-8 text-white text-center shadow-xl">
-          <p className="text-red-100 text-sm mb-2 uppercase tracking-widest">{data.style}</p>
-          <div className="text-7xl font-black mb-3 tracking-wider" style={{fontFamily:"serif"}}>{data.chinese_name}</div>
-          <p className="text-2xl text-amber-100 font-light tracking-widest">{data.pinyin}</p>
-          {data.lucky_element && <div className="mt-4 inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-sm">⭐ Lucky Element: <strong>{data.lucky_element}</strong></div>}
+          <p className="text-red-100 text-sm mb-2 uppercase tracking-widest">{data.style as string}</p>
+          <div className="text-7xl font-black mb-3 tracking-wider" style={{fontFamily:"serif"}}>{data.chinese_name as string}</div>
+          <p className="text-2xl text-amber-100 font-light tracking-widest">{data.pinyin as string}</p>
+          {data.lucky_element && <div className="mt-4 inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-sm">⭐ Lucky Element: <strong>{data.lucky_element as string}</strong></div>}
         </div>
         <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-6">
           <p className="text-xs text-gray-400 mb-1">This is the Chinese name of</p>
-          <p className="text-2xl font-bold text-gray-800">{data.first_name} {data.last_name}</p>
+          <p className="text-2xl font-bold text-gray-800">{data.first_name as string} {data.last_name as string}</p>
         </div>
         {data.characters && (
           <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-6">
@@ -57,13 +79,13 @@ export default async function NamePage({ params }: { params: { id: string } }) {
                 </div>
               ))}
             </div>
-            <p className="text-gray-600 text-sm leading-relaxed bg-amber-50 rounded-xl p-4">{data.name_meaning}</p>
+            <p className="text-gray-600 text-sm leading-relaxed bg-amber-50 rounded-xl p-4">{data.name_meaning as string}</p>
           </div>
         )}
         {data.bazi_analysis && (
           <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-6">
             <h3 className="font-bold text-gray-700 mb-3 text-sm uppercase tracking-widest">BaZi Analysis</h3>
-            <p className="text-gray-500 text-sm leading-relaxed">{data.bazi_analysis}</p>
+            <p className="text-gray-500 text-sm leading-relaxed">{data.bazi_analysis as string}</p>
           </div>
         )}
         <div className="bg-white rounded-3xl border border-amber-100 shadow-sm p-6 text-center">
