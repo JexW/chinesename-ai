@@ -20,6 +20,20 @@ const translations = {
     unknownTimeNote: "⚠️ Without birth time, the Hour Pillar cannot be calculated. Your name will be based on date + phonetics only.",
     timeSlots: ["Early Morning (子/丑 23:00–03:00)", "Dawn (寅/卯 03:00–07:00)", "Morning (辰/巳 07:00–11:00)", "Noon (午/未 11:00–15:00)", "Afternoon (申/酉 15:00–19:00)", "Evening (戌/亥 19:00–23:00)"],
     placeholderFirst: "e.g. James", placeholderLast: "e.g. Smith", placeholderCity: "e.g. London, UK",
+    genderLabel: "Gender",
+    genderOptions: [
+      { value: "male", label: "♂ Masculine", desc: "Strong, powerful characters" },
+      { value: "female", label: "♀ Feminine", desc: "Elegant, graceful characters" },
+      { value: "neutral", label: "◎ Neutral", desc: "Balanced, unisex characters" },
+    ],
+    styleLabel: "Name Style",
+    styleOptions: [
+      { value: "classical", label: "🏯 Classical", desc: "Tang/Song dynasty inspired" },
+      { value: "modern", label: "✨ Modern", desc: "Contemporary & sleek" },
+      { value: "nature", label: "🌿 Nature", desc: "Mountains, rivers, flora" },
+      { value: "poetic", label: "📜 Poetic", desc: "Literary & philosophical" },
+      { value: "surprise", label: "🎲 Surprise me", desc: "Mix of all styles" },
+    ],
   },
   zh: {
     tagline: "以中文命名艺术，连接东西方文化",
@@ -39,6 +53,20 @@ const translations = {
     unknownTimeNote: "⚠️ 没有出生时间，无法计算时柱。你的名字将仅根据日期和读音生成。",
     timeSlots: ["深夜早晨（子/丑 23:00–03:00）", "黎明（寅/卯 03:00–07:00）", "上午（辰/巳 07:00–11:00）", "午间（午/未 11:00–15:00）", "下午（申/酉 15:00–19:00）", "傍晚（戌/亥 19:00–23:00）"],
     placeholderFirst: "例如 James", placeholderLast: "例如 Smith", placeholderCity: "例如 London, UK",
+    genderLabel: "性别倾向",
+    genderOptions: [
+      { value: "male", label: "♂ 男性风", desc: "刚健有力的字符" },
+      { value: "female", label: "♀ 女性风", desc: "优雅灵秀的字符" },
+      { value: "neutral", label: "◎ 中性", desc: "平衡中性的字符" },
+    ],
+    styleLabel: "名字风格",
+    styleOptions: [
+      { value: "classical", label: "🏯 古典风", desc: "唐宋诗词意境" },
+      { value: "modern", label: "✨ 现代风", desc: "简洁时尚感" },
+      { value: "nature", label: "🌿 自然风", desc: "山川草木意象" },
+      { value: "poetic", label: "📜 诗意风", desc: "文学哲学气质" },
+      { value: "surprise", label: "🎲 随机惊喜", desc: "融合多种风格" },
+    ],
   },
 };
 
@@ -136,9 +164,45 @@ interface ResultData {
   form:{firstName:string;lastName:string};generatedLang:string;
 }
 
-function buildPrompt(form: {firstName:string;lastName:string;birthPlace:string;birthDate:string}, timeStr: string|null, bazi: ReturnType<typeof calculateBazi>, isZh: boolean) {
+function buildPrompt(
+  form: {firstName:string;lastName:string;birthPlace:string;birthDate:string},
+  timeStr: string|null,
+  bazi: ReturnType<typeof calculateBazi>,
+  isZh: boolean,
+  gender: string,
+  styles: string[]
+) {
   const baziStr = `Year ${bazi.year.pillar}(${bazi.year.element}), Month ${bazi.month.pillar}(${bazi.month.element}), Day ${bazi.day.pillar}(${bazi.day.element})${bazi.hour ? `, Hour ${bazi.hour.pillar}(${bazi.hour.element})` : ", Hour: Unknown"}`;
   const noTimeNote = !timeStr ? "\nNOTE: Birth time is unknown. Skip Hour Pillar analysis. Focus name on Year/Month/Day elements and phonetics." : "";
+
+  // Gender instruction
+  const genderMap: Record<string, string> = {
+    male: "MASCULINE — use strong, powerful characters associated with ambition, strength, wisdom (e.g. 浩, 峰, 轩, 睿, 博)",
+    female: "FEMININE — use elegant, graceful characters associated with beauty, gentleness, virtue (e.g. 雪, 雅, 婷, 柔, 莹)",
+    neutral: "GENDER-NEUTRAL — use balanced characters that work for any gender (e.g. 明, 晨, 云, 林, 思)",
+  };
+  const genderInstruction = genderMap[gender] || genderMap.neutral;
+
+  // Style instruction
+  const styleMap: Record<string, string> = {
+    classical: "Classical (古典风) — inspired by Tang/Song dynasty poetry, classical literature, historical elegance",
+    modern: "Modern (现代风) — contemporary, sleek, simple characters used by young Chinese today",
+    nature: "Nature (自然风) — imagery of mountains, rivers, seasons, flora and fauna",
+    poetic: "Poetic (诗意风) — literary, philosophical, drawn from classical Chinese poetry and philosophy",
+    surprise: "Surprise mix — freely combine classical, modern, and nature styles creatively",
+  };
+
+  // If user picked specific styles, use those; otherwise use all 3 defaults
+  const activeStyles = styles.length > 0 && !styles.includes("surprise")
+    ? styles.map(s => styleMap[s] || s)
+    : styles.includes("surprise")
+    ? [styleMap.surprise]
+    : [styleMap.classical, styleMap.modern, styleMap.nature];
+
+  const stylesInstruction = activeStyles.length === 1
+    ? `Generate 3 name variations all in this style: ${activeStyles[0]}`
+    : `Generate exactly ${activeStyles.length} names, one per style:\n${activeStyles.map((s, i) => `  Option ${i+1}: ${s}`).join("\n")}`;
+
   return `You are a master Chinese name consultant with deep expertise in BaZi Five Elements, Chinese phonetics, classical poetry, and traditional Chinese surnames (百家姓).
 
 IMPORTANT: Write ALL explanations, meanings, analysis, and advice in ${isZh?"Chinese (中文)":"English"}. Only JSON keys stay in English.${noTimeNote}
@@ -150,13 +214,16 @@ Person:
 - Birth date: ${form.birthDate}${timeStr ? `, Birth time: ${timeStr}` : " (birth time unknown)"}
 - BaZi: ${baziStr}
 
+GENDER PREFERENCE: ${genderInstruction}
+
+NAME STYLES: ${stylesInstruction}
+
 NAMING RULES:
 1. Chinese = SURNAME first + GIVEN NAME after
 2. SURNAME from 百家姓 based on LAST NAME sound: Potter->朴, Smith->史, Johnson->庄, Brown->白, Williams->卫, Jones->庄, Taylor->戴, Wilson->魏, Davies->戴, Evans->叶
-3. GIVEN NAME (1-2 chars) based on FIRST NAME sound: Harry->海瑞, James->杰明, Emma->艾梅, John->俊, Sarah->莎瑞
+3. GIVEN NAME (1-2 chars) based on FIRST NAME sound + matches gender preference above
 4. Strengthen weak/missing BaZi elements
 5. Beautiful real Chinese name, NOT transliteration
-6. 3 options: Classical(古典风), Modern(现代风), Nature(自然风)
 
 PHONETIC: Keep Western order (First then Last): Harry Potter->哈利·波特
 
@@ -164,13 +231,14 @@ Return ONLY valid JSON, no markdown:
 {"names":[{"chineseName":"史明浩","pinyin":"Shǐ Míng Hào","style":"Classical","styleZh":"古典风","characters":[{"char":"史","pinyin":"Shǐ","meaning":"historian","strokes":5,"element":"Metal"}],"nameMeaning":"explanation","baziMatch":"bazi note"}],"phoneticOnly":"哈利·波特","phoneticPinyin":"Hā Lì Bō Tè","baziAnalysis":"analysis","luckyElement":"Fire","elementAdvice":{"missingElements":["Water"],"jewelry":"silver","colors":"blue","direction":"North","lifestyle":"tips","food":"recommendations"}}`;
 }
 
-function buildRegenPrompt(type: "surname"|"given", currentName: string, form: {firstName:string;lastName:string;birthPlace:string}, isZh: boolean) {
+function buildRegenPrompt(type: "surname"|"given", currentName: string, form: {firstName:string;lastName:string;birthPlace:string}, isZh: boolean, gender: string) {
   const lang = isZh ? "Chinese" : "English";
+  const genderHint = gender === "male" ? "masculine/strong" : gender === "female" ? "feminine/elegant" : "gender-neutral";
   if (type === "surname") {
     return `Give me 1 alternative Chinese surname from 百家姓 for someone whose last name is "${form.lastName}" from ${form.birthPlace}. The surname should sound similar to "${form.lastName}". Current surname is "${currentName[0]}". Give a DIFFERENT one. Return ONLY JSON: {"surname":"汪","pinyin":"Wāng","meaning":"explanation in ${lang}","strokes":7,"element":"Water"}`;
   } else {
     const givenPart = currentName.slice(1);
-    return `Give me 1 alternative Chinese given name (1-2 characters) for someone whose first name is "${form.firstName}". Should sound like "${form.firstName}". Current given name is "${givenPart}". Give a DIFFERENT one. Return ONLY JSON: {"given":"明浩","pinyin":"Míng Hào","meaning":"explanation in ${lang}","characters":[{"char":"明","pinyin":"Míng","meaning":"bright","strokes":8,"element":"Fire"}]}`;
+    return `Give me 1 alternative Chinese given name (1-2 characters) for someone whose first name is "${form.firstName}". Should sound like "${form.firstName}". Prefer ${genderHint} characters. Current given name is "${givenPart}". Give a DIFFERENT one. Return ONLY JSON: {"given":"明浩","pinyin":"Míng Hào","meaning":"explanation in ${lang}","characters":[{"char":"明","pinyin":"Míng","meaning":"bright","strokes":8,"element":"Fire"}]}`;
   }
 }
 
@@ -180,6 +248,8 @@ export default function App() {
   const [form, setForm] = useState({firstName:"",lastName:"",birthPlace:"",birthDate:"",birthTime:""});
   const [unknownTime, setUnknownTime] = useState(false);
   const [timeSlot, setTimeSlot] = useState<number|null>(null);
+  const [gender, setGender] = useState("neutral");
+  const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [result, setResult] = useState<ResultData|null>(null);
   const [selectedName, setSelectedName] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -195,6 +265,22 @@ export default function App() {
     return form.birthTime || null;
   };
 
+  const toggleStyle = (value: string) => {
+    if (value === "surprise") {
+      setSelectedStyles(prev => prev.includes("surprise") ? [] : ["surprise"]);
+      return;
+    }
+    setSelectedStyles(prev => {
+      const without = prev.filter(s => s !== "surprise");
+      if (without.includes(value)) {
+        return without.filter(s => s !== value);
+      }
+      // Max 3 non-surprise styles
+      if (without.length >= 3) return without;
+      return [...without, value];
+    });
+  };
+
   const handleSubmit = async () => {
     if (!form.firstName||!form.birthDate||!form.birthPlace) {
       setError(lang==="en"?"Please fill in all required fields.":"请填写所有必填项。"); return;
@@ -205,7 +291,7 @@ export default function App() {
     setError(""); setLoading(true); setResult(null);
     const effectiveTime = getEffectiveTime();
     const bazi = calculateBazi(form.birthDate, effectiveTime);
-    const prompt = buildPrompt(form, effectiveTime, bazi, lang==="zh");
+    const prompt = buildPrompt(form, effectiveTime, bazi, lang==="zh", gender, selectedStyles);
     try {
       const res = await fetch("/api/generate", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});
       const data = await res.json();
@@ -223,7 +309,7 @@ export default function App() {
     if (!result) return;
     setRegenLoading(type);
     const currentName = result.names[selectedName].chineseName;
-    const prompt = buildRegenPrompt(type, currentName, form, lang==="zh");
+    const prompt = buildRegenPrompt(type, currentName, form, lang==="zh", gender);
     try {
       const res = await fetch("/api/generate", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});
       const data = await res.json();
@@ -250,39 +336,39 @@ export default function App() {
   };
 
   const handleShare = async () => {
-  if (!result?.names?.[selectedName]) return;
-  const n = result.names[selectedName];
-  try {
-    const res = await fetch("/api/save-name", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({
-        first_name: result.form.firstName,
-        last_name: result.form.lastName,
-        chinese_name: n.chineseName,
-        pinyin: n.pinyin,
-        style: n.style,
-        characters: n.characters,
-        name_meaning: n.nameMeaning,
-        bazi: result.bazi,
-        element_advice: result.elementAdvice,
-        bazi_analysis: result.baziAnalysis,
-        lucky_element: result.luckyElement,
-        phonetic_only: result.phoneticOnly,
-        phonetic_pinyin: result.phoneticPinyin,
-      })
-    });
-    const data = await res.json();
-    if (data.id) {
-      const url = `${window.location.origin}/name/${data.id}`;
-      navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(()=>setCopied(false),3000);
+    if (!result?.names?.[selectedName]) return;
+    const n = result.names[selectedName];
+    try {
+      const res = await fetch("/api/save-name", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+          first_name: result.form.firstName,
+          last_name: result.form.lastName,
+          chinese_name: n.chineseName,
+          pinyin: n.pinyin,
+          style: n.style,
+          characters: n.characters,
+          name_meaning: n.nameMeaning,
+          bazi: result.bazi,
+          element_advice: result.elementAdvice,
+          bazi_analysis: result.baziAnalysis,
+          lucky_element: result.luckyElement,
+          phonetic_only: result.phoneticOnly,
+          phonetic_pinyin: result.phoneticPinyin,
+        })
+      });
+      const data = await res.json();
+      if (data.id) {
+        const url = `${window.location.origin}/name/${data.id}`;
+        navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(()=>setCopied(false),3000);
+      }
+    } catch(err) {
+      console.error(err);
     }
-  } catch(err) {
-    console.error(err);
-  }
-};
+  };
 
   const langMismatch = result && result.generatedLang !== lang;
 
@@ -306,6 +392,7 @@ export default function App() {
 
         {!result ? (
           <div className="bg-white rounded-3xl shadow-lg shadow-amber-100 border border-amber-100 p-8">
+            {/* Name fields */}
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-1.5">{t.firstName} *</label>
@@ -316,10 +403,12 @@ export default function App() {
                 <input name="lastName" value={form.lastName} onChange={handleChange} placeholder={t.placeholderLast} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300 transition"/>
               </div>
             </div>
+
             <div className="mb-4">
               <label className="block text-sm font-semibold text-gray-600 mb-1.5">{t.birthPlace} *</label>
               <input name="birthPlace" value={form.birthPlace} onChange={handleChange} placeholder={t.placeholderCity} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300 transition"/>
             </div>
+
             <div className="grid grid-cols-2 gap-4 mb-3">
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-1.5">{t.birthDate} *</label>
@@ -352,8 +441,74 @@ export default function App() {
               </div>
             )}
 
-            {!unknownTime && <p className="text-xs text-amber-600 mb-4">⏰ {t.birthTimeTip}</p>}
+            {!unknownTime && <p className="text-xs text-amber-600 mb-5">⏰ {t.birthTimeTip}</p>}
+
+            {/* ── GENDER SELECTOR ── */}
+            <div className="mb-5">
+              <label className="block text-sm font-semibold text-gray-600 mb-2">{t.genderLabel}</label>
+              <div className="grid grid-cols-3 gap-2">
+                {t.genderOptions.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setGender(opt.value)}
+                    className={`rounded-xl border-2 p-3 text-center transition ${
+                      gender === opt.value
+                        ? "border-red-400 bg-red-50"
+                        : "border-gray-100 hover:border-amber-200 bg-white"
+                    }`}
+                  >
+                    <div className={`text-sm font-bold mb-0.5 ${gender === opt.value ? "text-red-600" : "text-gray-700"}`}>
+                      {opt.label}
+                    </div>
+                    <div className="text-xs text-gray-400">{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── STYLE SELECTOR ── */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-600 mb-1">
+                {t.styleLabel}
+                <span className="text-xs text-gray-400 font-normal ml-2">
+                  {lang === "en" ? "(optional, pick up to 3)" : "（可选，最多选3个）"}
+                </span>
+              </label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {t.styleOptions.map(opt => {
+                  const isActive = selectedStyles.includes(opt.value);
+                  const isSurprise = opt.value === "surprise";
+                  const isDisabled = !isActive && !isSurprise && selectedStyles.length >= 3 && !selectedStyles.includes("surprise");
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => toggleStyle(opt.value)}
+                      disabled={isDisabled}
+                      className={`rounded-xl border-2 p-3 text-left transition ${
+                        isActive
+                          ? "border-amber-400 bg-amber-50"
+                          : isDisabled
+                          ? "border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed"
+                          : "border-gray-100 hover:border-amber-200 bg-white"
+                      }`}
+                    >
+                      <div className={`text-sm font-bold mb-0.5 ${isActive ? "text-amber-700" : "text-gray-700"}`}>
+                        {opt.label}
+                      </div>
+                      <div className="text-xs text-gray-400">{opt.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedStyles.length === 0 && (
+                <p className="text-xs text-gray-400 mt-1.5">
+                  {lang === "en" ? "No styles selected → will generate Classical, Modern & Nature" : "未选择 → 将生成古典、现代、自然三种风格"}
+                </p>
+              )}
+            </div>
+
             {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
+
             <button onClick={handleSubmit} disabled={loading} className="w-full bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-600 hover:to-amber-600 disabled:opacity-60 text-white font-bold py-4 rounded-2xl transition shadow-md shadow-amber-200 flex items-center justify-center gap-2">
               {loading?<><Dots/><span>{t.generating}</span></>:<><span>🏮</span>{t.generate}</>}
             </button>
