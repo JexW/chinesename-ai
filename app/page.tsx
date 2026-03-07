@@ -649,7 +649,10 @@ export default function App() {
           </div>
         )}
       </main>
-      <footer className="text-center text-xs text-gray-400 pb-8">🏮 ChineseName.ai · Bridging cultures through the art of Chinese naming</footer>
+      <footer className="text-center text-xs text-gray-400 pb-8 space-y-1">
+        <div>🏮 ChineseName.ai · Bridging cultures through the art of Chinese naming</div>
+        <div>Feedback or questions? <a href="mailto:chinesename.sup@outlook.com" className="text-amber-500 hover:underline">联系我们</a></div>
+      </footer>
     </div>
   );
 }
