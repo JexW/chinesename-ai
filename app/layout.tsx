@@ -5,6 +5,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  verification: {
+    google: "oIWdf1b5_9XGrTRDg99zRzqF0u4StSgPUaaVV0wnwm0",
+  },
   title: "ChineseName.ai — Find Your Chinese Name with BaZi",
   description:
     "Get a beautiful, meaningful Chinese name based on your BaZi (Eight Characters) birth chart. AI-powered, culturally authentic. Free for foreigners learning Chinese or living in China.",
