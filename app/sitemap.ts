@@ -10,7 +10,7 @@ const supabase = createClient(
 );
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://chinesename-ai.vercel.app";
+  const baseUrl = "https://www.mychinesename.app";
 
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [

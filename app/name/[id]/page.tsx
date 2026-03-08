@@ -67,7 +67,7 @@ export async function generateMetadata({
     : `${fullName}'s Chinese name is ${data.chinese_name} (${data.pinyin}). Generated with BaZi astrology on ChineseName.ai.`;
 
   // OG image via our dynamic route
-  const ogImageUrl = `https://chinesename-ai.vercel.app/api/og?name=${encodeURIComponent(data.chinese_name)}&pinyin=${encodeURIComponent(data.pinyin)}&english=${encodeURIComponent(fullName)}&element=${encodeURIComponent(data.lucky_element || "")}`;
+  const ogImageUrl = `https://www.mychinesename.app/api/og?name=${encodeURIComponent(data.chinese_name)}&pinyin=${encodeURIComponent(data.pinyin)}&english=${encodeURIComponent(fullName)}&element=${encodeURIComponent(data.lucky_element || "")}`;
 
   return {
     title,
@@ -75,7 +75,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      url: `https://chinesename-ai.vercel.app/name/${id}`,
+      url: `https://www.mychinesename.app/name/${id}`,
       siteName: "ChineseName.ai",
       images: [
         {
@@ -94,7 +94,7 @@ export async function generateMetadata({
       images: [ogImageUrl],
     },
     alternates: {
-      canonical: `https://chinesename-ai.vercel.app/name/${id}`,
+      canonical: `https://www.mychinesename.app/name/${id}`,
     },
   };
 }
@@ -120,7 +120,7 @@ export default async function NamePage({
         name: `${data.first_name} ${data.last_name}`,
         alternateName: `${data.chinese_name} (${data.pinyin})`,
         description: data.name_meaning,
-        url: `https://chinesename-ai.vercel.app/name/${id}`,
+        url: `https://www.mychinesename.app/name/${id}`,
       }
     : null;
 

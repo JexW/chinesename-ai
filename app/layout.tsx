@@ -23,11 +23,11 @@ export const metadata: Metadata = {
     title: "ChineseName.ai — Find Your Chinese Name with BaZi",
     description:
       "Get a beautiful, meaningful Chinese name based on your BaZi birth chart. AI-powered, culturally authentic. Free.",
-    url: "https://chinesename-ai.vercel.app",
+    url: "https://www.mychinesename.app",
     siteName: "ChineseName.ai",
     images: [
       {
-        url: "https://chinesename-ai.vercel.app/og-default.png",
+        url: "https://www.mychinesename.app/og-default.png",
         width: 1200,
         height: 630,
         alt: "ChineseName.ai — Find Your Chinese Name",
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     title: "ChineseName.ai — Find Your Chinese Name with BaZi",
     description:
       "Get a beautiful, meaningful Chinese name based on your BaZi birth chart. AI-powered & free.",
-    images: ["https://chinesename-ai.vercel.app/og-default.png"],
+    images: ["https://www.mychinesename.app/og-default.png"],
   },
   robots: {
     index: true,
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "https://chinesename-ai.vercel.app",
+    canonical: "https://www.mychinesename.app",
   },
 };
 
@@ -74,7 +74,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "WebApplication",
               name: "ChineseName.ai",
-              url: "https://chinesename-ai.vercel.app",
+              url: "https://www.mychinesename.app",
               description:
                 "AI-powered Chinese name generator for foreigners, based on BaZi (Eight Characters) astrology.",
               applicationCategory: "UtilitiesApplication",

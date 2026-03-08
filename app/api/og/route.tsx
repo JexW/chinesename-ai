@@ -155,7 +155,7 @@ export async function GET(req: NextRequest) {
             fontFamily: "sans-serif",
           }}
         >
-          chinesename-ai.vercel.app
+          www.mychinesename.app
         </div>
       </div>
     ),
