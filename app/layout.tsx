@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     siteName: "ChineseName.ai",
     images: [
       {
-        url: "https://www.mychinesename.app/og-default.png",
+        url: "https://www.mychinesename.app/api/og",
         width: 1200,
         height: 630,
         alt: "ChineseName.ai — Find Your Chinese Name",
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     title: "ChineseName.ai — Find Your Chinese Name with BaZi",
     description:
       "Get a beautiful, meaningful Chinese name based on your BaZi birth chart. AI-powered & free.",
-    images: ["https://www.mychinesename.app/og-default.png"],
+    images: ["https://www.mychinesename.app/api/og"],
   },
   robots: {
     index: true,
