@@ -112,7 +112,7 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold text-white mb-4">📬 Contact</h2>
             <p>
               Questions about your privacy? Email us at{" "}
-              <a href="mailto:contact@mychinesename.app" className="text-red-400 hover:underline">
+              <a href="mailto:chinesename.sup@outlook.com" className="text-red-400 hover:underline">
                 contact@mychinesename.app
               </a>
             </p>
