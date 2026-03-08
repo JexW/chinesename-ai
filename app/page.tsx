@@ -650,10 +650,19 @@ export default function App() {
         )}
       </main>
       <footer className="text-center text-xs text-gray-400 pb-8 space-y-1">
-        <div>🏮 ChineseName.ai · Bridging cultures through the art of Chinese naming</div>
-        <div>Feedback or questions? <a href="mailto:chinesename.sup@outlook.com" className="text-amber-500 hover:underline">Contact us</a></div>
-        <div><a href="/privacy" className="text-amber-500 hover:underline">Privacy Policy</a></div>
-      </footer>
+        <div>🏮 {lang === 'zh' ? '通过中文命名艺术连接文化' : 'Bridging cultures through the art of Chinese naming'}</div>
+        <div>
+          {lang === 'zh' ? '反馈或问题？' : 'Feedback or questions?'}{' '}
+          <a href="mailto:chinesename.sup@outlook.com" className="text-amber-500 hover:underline">
+            {lang === 'zh' ? '联系我们' : 'Contact us'}
+          </a>
+        </div>
+        <div>
+          <a href="/privacy" className="text-amber-500 hover:underline">
+            {lang === 'zh' ? '隐私政策' : 'Privacy Policy'}
+          </a>
+        </div>
+     </footer>
     </div>
   );
 }
